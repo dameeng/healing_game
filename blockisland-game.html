@@ -172,6 +172,22 @@ body:not(.touch) #btnJump{display:none}
 input[type=range]{accent-color:var(--berry);width:120px}
 input[type=checkbox]{accent-color:var(--berry);width:22px;height:22px;flex:0 0 auto;margin:0 4px 0 0}
 
+.coins{font-family:var(--display);font-size:15px;background:var(--slot);padding:6px 12px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.coins::before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;background:#ffcc33;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);margin-right:6px;vertical-align:-1px}
+.tabs{display:flex;gap:4px;background:var(--slot);padding:4px;border-radius:12px}
+.tab{flex:1;border:0;background:none;border-radius:9px;padding:8px;font-size:15px}
+.tab.on{background:var(--panel-solid);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.shop-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:9px 10px 9px 12px;border-radius:14px;background:var(--slot)}
+.shop-row .nm{font-family:var(--display);font-size:15px}
+.shop-row .pr{font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.shop-row .tag{display:inline-block;font-size:11px;color:var(--berry);border:1px solid var(--berry);border-radius:999px;padding:0 6px;margin-left:6px;vertical-align:1px}
+.shop-row .acts{display:flex;gap:6px}
+.shop-row .btn{padding:8px 12px;font-size:14px}
+.empty-note{padding:18px;text-align:center;color:var(--ink-soft);background:var(--slot);border-radius:14px;font-size:14px}
+.btn.danger{color:var(--berry)}
+.btn.primary.danger{color:var(--berry-ink)}
+.row.confirm{justify-content:flex-start}
+.row.confirm span{font-size:13.5px;color:var(--ink-soft);flex-basis:100%}
 .bag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .bag-item{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--slot)}
 .bag-item .nm{font-family:var(--display);font-size:15px}
@@ -233,6 +249,7 @@ body:not(.touch) .touch-only{display:none}
   <div id="actions">
     <button class="act" id="btnPull" hidden>기다리는 중…</button>
     <button class="act" id="btnTalk" hidden>대화</button>
+    <button class="act" id="btnShop" hidden>잡화점 열기</button>
     <button class="act" id="btnMode" aria-label="캐기와 놓기 바꾸기"></button>
     <button class="act" id="btnJump">점프</button>
   </div>
@@ -263,20 +280,37 @@ body:not(.touch) .touch-only{display:none}
   </div>
 </div>
 
+<div id="shop" class="modal" hidden>
+  <div class="sheet wide" role="dialog" aria-labelledby="shopTitle">
+    <div class="sheet-head"><h2 id="shopTitle">섬 잡화점</h2><span class="coins" id="shopCoins">0코인</span></div>
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-tab="sell" role="tab" aria-selected="true">팔기</button>
+      <button class="tab" data-tab="buy" role="tab" aria-selected="false">사기</button>
+    </div>
+    <p id="shopNote"></p>
+    <div id="shopList" style="display:grid;gap:8px"></div>
+    <div class="row"><button class="btn primary" id="shopClose">닫기</button></div>
+  </div>
+</div>
+
 <div id="settings" class="modal" hidden>
   <div class="sheet wide" role="dialog" aria-labelledby="setTitle">
     <h2 id="setTitle">설정</h2>
     <div id="setBody" style="display:grid;gap:10px"></div>
     <div class="set-sec">
-      <h3>섬</h3>
-      <p class="set-note">게임은 이 브라우저에 자동으로 저장돼요. 다른 기기나 다른 브라우저에서는 새 섬에서 시작해요.</p>
-      <div class="row" style="justify-content:flex-start">
-        <button class="btn" id="btnReset">섬 처음부터 다시 만들기</button>
+      <h3>게임 초기화</h3>
+      <p class="set-note">게임은 이 브라우저에 자동으로 저장돼요. 초기화해도 위의 조작 설정은 그대로 남아요.</p>
+      <div class="set-row"><span>섬만 새로 만들기<small>지형만 새로 만들어요. 가방, 코인, 도감, 이웃과의 우정은 그대로예요</small></span><button class="btn" id="btnNewIsland">새로 만들기</button></div>
+      <div class="row confirm" id="islandConfirm" hidden>
+        <span>지금까지 지은 건물과 바꾼 지형이 사라져요.</span>
+        <button class="btn" id="islandNo">취소</button>
+        <button class="btn primary" id="islandYes">새 섬 만들기</button>
       </div>
-      <div class="row" id="resetConfirm" hidden style="justify-content:flex-start">
-        <span style="font-size:14px;color:var(--ink-soft)">지금까지 지은 것과 모은 것이 모두 사라져요.</span>
+      <div class="set-row"><span>게임 전체 초기화<small>섬, 가방, 코인, 도감, 이웃과의 우정까지 모두 처음으로 돌아가요</small></span><button class="btn danger" id="btnReset">전체 초기화</button></div>
+      <div class="row confirm" id="resetConfirm" hidden>
+        <span>모든 진행 상황이 사라지고 되돌릴 수 없어요.</span>
         <button class="btn" id="resetNo">취소</button>
-        <button class="btn primary" id="resetYes">다시 만들기</button>
+        <button class="btn primary danger" id="resetYes">처음부터 시작</button>
       </div>
     </div>
     <div class="row">
@@ -321,7 +355,7 @@ const pickOne = arr => arr[Math.floor(Math.random()*arr.length)];
 const SET_KEY = 'blockisland-settings-v1';
 const ACTIONS = [
   ['forward','앞으로'], ['back','뒤로'], ['left','왼쪽으로'], ['right','오른쪽으로'],
-  ['jump','점프'], ['run','달리기 (누르고 있기)'], ['talk','대화 · 낚싯대 당기기'],
+  ['jump','점프'], ['run','달리기 (누르고 있기)'], ['talk','대화 · 잡화점 · 낚싯대 당기기'],
   ['mode','캐기/놓기 바꾸기'], ['craft','제작 열기'], ['bag','가방 열기'],
 ];
 const DEFAULT_KEYS = {forward:'KeyW', back:'KeyS', left:'KeyA', right:'KeyD', jump:'Space', run:'ShiftLeft', talk:'KeyE', mode:'KeyQ', craft:'KeyC', bag:'KeyB'};
@@ -351,7 +385,7 @@ const actionLabel = a => (ACTIONS.find(x => x[0] === a) || [a, a])[1];
 
 /* ---------- world constants ---------- */
 const W = 64, D = 64, H = 24, SEA = 4.6, REACH = 6.5, SAVE_KEY = 'blockisland-v1';
-const AIR=0, GRASS=1, DIRT=2, SAND=3, STONE=4, WOOD=5, LEAF=6, PLANK=7, BRICK=8, LANTERN=9, FLOWER=10, WATER=11, FALL=12;
+const AIR=0, GRASS=1, DIRT=2, SAND=3, STONE=4, WOOD=5, LEAF=6, PLANK=7, BRICK=8, LANTERN=9, FLOWER=10, WATER=11, FALL=12, GLASS=13, BERRY=14;
 const ROD=20, NET=21, SARDINE=30, BREAM=31, GOLDFISH=32, BOOT=33, MINNOW=34, TROUT=35, BUTTERFLY=40, LADYBUG=41, FIREFLY=42;
 const INFO = {
   [GRASS]:  {name:'잔디',   c:'#9fdc8a', drop:DIRT},
@@ -364,6 +398,8 @@ const INFO = {
   [BRICK]:  {name:'벽돌',   c:'#e8a08c', drop:BRICK},
   [LANTERN]:{name:'등불',   c:'#ffe9a3', drop:LANTERN},
   [FLOWER]: {name:'꽃',     c:'#ff9fb8', drop:FLOWER},
+  [GLASS]:  {name:'유리',   c:'#d6f1ff', drop:GLASS},
+  [BERRY]:  {name:'딸기 블록', c:'#ffa3bd', drop:BERRY},
   [WATER]:  {name:'물',     c:'#38b6d6'},
   [FALL]:   {name:'폭포',   c:'#cfefff'},
   [MINNOW]:   {name:'피라미',     c:'#a9c9b8', kind:'fish', desc:'강과 폭포 웅덩이에 사는 작은 물고기. 떼 지어 다녀요.'},
@@ -378,7 +414,13 @@ const INFO = {
   [LADYBUG]:  {name:'무당벌레',   c:'#ff6b6b', kind:'bug', desc:'낮에 풀밭을 천천히 기어다니는 빨간 점박이.'},
   [FIREFLY]:  {name:'반딧불이',   c:'#d8ff7a', kind:'bug', desc:'밤에만 나타나 반짝반짝 빛나요.'},
 };
-const ORDER = [WOOD, PLANK, STONE, BRICK, DIRT, SAND, LEAF, LANTERN, FLOWER];
+const ORDER = [WOOD, PLANK, STONE, BRICK, DIRT, SAND, LEAF, LANTERN, FLOWER, GLASS, BERRY];
+const SLOT_KEYS = ['1','2','3','4','5','6','7','8','9','0','-'];
+// island shop: what it pays per item, and what it sells
+const SELL = {[SARDINE]:10, [BREAM]:30, [GOLDFISH]:150, [MINNOW]:8, [TROUT]:40, [BOOT]:1,
+  [BUTTERFLY]:15, [LADYBUG]:20, [FIREFLY]:45,
+  [WOOD]:2, [PLANK]:3, [STONE]:1, [BRICK]:4, [DIRT]:1, [SAND]:1, [LEAF]:1, [FLOWER]:3, [LANTERN]:8, [GLASS]:5, [BERRY]:5};
+const BUY = [[PLANK,5], [BRICK,8], [LANTERN,15], [FLOWER,6], [SAND,2], [GLASS,10], [BERRY,10]];
 const DEX = [SARDINE, BREAM, GOLDFISH, BOOT, MINNOW, TROUT, BUTTERFLY, LADYBUG, FIREFLY];
 const RECIPES = [
   {out:PLANK, n:2, need:{[WOOD]:1}},
@@ -440,7 +482,8 @@ const VILLAGERS = [
 /* ---------- state ---------- */
 let world = new Uint8Array(W*H*D);
 let seed = 1;
-let inv = {}, seen = {};
+let inv = {}, seen = {}, coins = 0;
+let shopPos = {x: 36, z: 28};
 let dayT = 0.05, daylight = 1;
 let dirty = true;
 const idx = (x,y,z) => x + z*W + y*W*D;
@@ -448,8 +491,8 @@ const inB = (x,y,z) => x>=0 && x<W && z>=0 && z<D && y>=0 && y<H;
 const get = (x,y,z) => inB(x,y,z) ? world[idx(x,y,z)] : AIR;
 const put = (x,y,z,v) => { if (inB(x,y,z)) { world[idx(x,y,z)] = v; dirty = true; } };
 const isWaterB = b => b === WATER || b === FALL;
-const opaque = b => b !== AIR && b !== FLOWER && b !== WATER && b !== FALL;
-const solid = opaque;
+const opaque = b => b !== AIR && b !== FLOWER && b !== WATER && b !== FALL && b !== GLASS;
+const solid = b => opaque(b) || b === GLASS;
 
 /* ---------- generation ---------- */
 function rng(s){ return function(){ s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -546,7 +589,8 @@ function generate(s){
   }
   carveRiver(R);
   for (const v of villagers) v.home = findHome(v.def.angle, v.def.maxR);
-  const nearHome = (x,z,r) => villagers.some(v => Math.hypot(x-v.home.x, z-v.home.z) < r);
+  shopPos = findHome(5.6, 7);
+  const nearHome = (x,z,r) => villagers.some(v => Math.hypot(x-v.home.x, z-v.home.z) < r) || Math.hypot(x-shopPos.x, z-shopPos.z) < r;
   const trees = []; let tries = 0;
   while (trees.length < 30 && tries < 1500){
     tries++;
@@ -616,6 +660,8 @@ const T = {
   leaf: makeTex((g,R)=>{ speckle(g,R,'#84cc7c',.25,60); g.fillStyle='rgba(40,110,60,.2)'; for(let i=0;i<6;i++) g.fillRect(Math.floor(R()*14),Math.floor(R()*14),2,2); border(g,.08); }, 9),
   plank: makeTex((g,R)=>{ speckle(g,R,'#e8bb82',.12,25); g.fillStyle='rgba(120,70,30,.28)'; g.fillRect(0,5,16,1); g.fillRect(0,10,16,1); g.fillRect(6,0,1,5); g.fillRect(11,6,1,4); g.fillRect(3,11,1,5); border(g,.14); }, 10),
   brick: makeTex((g)=>{ g.fillStyle='#f6e7dc'; g.fillRect(0,0,16,16); g.fillStyle='#e8a08c'; for(let r=0;r<4;r++){ const off = r%2 ? 4 : 0; for(let c=-1;c<3;c++) g.fillRect(c*8+off+1, r*4+1, 7, 3); } }, 11),
+  glass: makeTex((g)=>{ g.fillStyle='rgba(220,244,255,.35)'; g.fillRect(0,0,16,16); g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=2; g.strokeRect(1,1,14,14); g.fillStyle='rgba(255,255,255,.8)'; g.fillRect(4,4,1,4); g.fillRect(5,4,2,1); }, 13),
+  berry: makeTex((g)=>{ g.fillStyle='#ffa3bd'; g.fillRect(0,0,16,16); g.fillStyle='#fff2d6'; for (const [x,y] of [[3,3],[10,2],[6,8],[12,10],[2,12],[9,13]]) g.fillRect(x,y,2,2); g.strokeStyle='rgba(160,60,90,.25)'; g.strokeRect(.5,.5,15,15); }, 14),
   lantern: makeTex((g)=>{ g.fillStyle='#ffe9a3'; g.fillRect(0,0,16,16); g.fillStyle='#fff7d6'; g.fillRect(5,5,6,6); g.strokeStyle='#7a5a3a'; g.lineWidth=2; g.strokeRect(1,1,14,14); g.fillStyle='#7a5a3a'; g.fillRect(7,0,2,16); g.fillRect(0,7,16,2); }, 12),
 };
 const lam = map => new THREE.MeshLambertMaterial({map});
@@ -625,6 +671,8 @@ const MATS = {
   [DIRT]: lam(T.dirt), [SAND]: lam(T.sand), [STONE]: lam(T.stone),
   [WOOD]: [lam(T.woodSide), lam(T.woodSide), lam(T.woodTop), lam(T.woodTop), lam(T.woodSide), lam(T.woodSide)],
   [LEAF]: lam(T.leaf), [PLANK]: lam(T.plank), [BRICK]: lam(T.brick), [LANTERN]: lanternMat,
+  [GLASS]: new THREE.MeshLambertMaterial({map:T.glass, transparent:true, opacity:.9, depthWrite:false}),
+  [BERRY]: lam(T.berry),
 };
 const boxGeo = new THREE.BoxGeometry(1,1,1);
 const CAP = 12000;
@@ -820,7 +868,31 @@ const villagers = VILLAGERS.map(def => {
   return v;
 });
 const PR = .3, PH = 1.45, VR = .28, VH = 1.4;
-function placeFlags(){ for (const v of villagers) v.flag.g.position.set(v.home.x+.5, topY(v.home.x, v.home.z), v.home.z+.5); }
+function makeStall(){
+  const g = new THREE.Group();
+  box(1.8,.9,.7,0xe8bb82,0,.45,0,g);
+  box(1.95,.08,.85,0xb98a5e,0,.94,0,g);
+  for (const x of [-.86,.86]) for (const z of [-.3,.3]) box(.1,2.1,.1,0xf7f3ee,x,1.05,z,g);
+  for (let i=0; i<6; i++) box(.33,.1,1.15, i%2 ? 0xffffff : 0xff9fb8, -.83+i*.33, 2.15, .05, g);
+  box(.26,.2,.26,0xffcc33,-.55,1.08,0,g);
+  box(.26,.26,.26,0x9fb7cf,0,1.11,.05,g);
+  box(.22,.3,.22,0xc7a6ff,.55,1.13,-.05,g);
+  const c = document.createElement('canvas'); c.width = 128; c.height = 48;
+  const cg = c.getContext('2d'); cg.fillStyle = '#fff7d6'; cg.fillRect(0,0,128,48);
+  cg.fillStyle = '#c4466a'; cg.font = '28px Jua, "Malgun Gothic", sans-serif'; cg.textAlign = 'center'; cg.textBaseline = 'middle'; cg.fillText('잡화점', 64, 26);
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(.9,.34,.05), new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(c)}));
+  sign.position.set(0,2.45,.45); g.add(sign);
+  g.traverse(o => { o.userData.shop = true; });
+  scene.add(g);
+  return {g, sign, canvas:c};
+}
+const stall = makeStall();
+function placeFlags(){
+  for (const v of villagers) v.flag.g.position.set(v.home.x+.5, topY(v.home.x, v.home.z), v.home.z+.5);
+  stall.g.position.set(shopPos.x+.5, topY(shopPos.x, shopPos.z), shopPos.z+.5);
+  stall.g.rotation.y = Math.atan2(W/2 - shopPos.x, D/2 - shopPos.z);
+}
+function nearShop(){ return Math.hypot(shopPos.x+.5-player.pos.x, shopPos.z+.5-player.pos.z) < 3.2 && Math.abs(stall.g.position.y - player.pos.y) < 2.5; }
 function spawnAtHome(v){ v.pos.set(v.home.x+1.5, topY(v.home.x+1, v.home.z+1)+.1, v.home.z+1.5); v.vel.set(0,0,0); v.target = null; }
 
 /* ---------- physics ---------- */
@@ -898,7 +970,7 @@ function renderHotbar(){
     const b = document.createElement('button');
     b.className = 'slot' + (t===selected ? ' on' : '') + (count(t) ? '' : ' empty');
     b.setAttribute('aria-label', `${INFO[t].name} ${count(t)}개`);
-    b.innerHTML = `<span class="k">${i+1}</span><span class="${icoClass(t)}" style="--c:${INFO[t].c}"></span><span class="n">${count(t) || ''}</span>`;
+    b.innerHTML = `<span class="k">${SLOT_KEYS[i]}</span><span class="${icoClass(t)}" style="--c:${INFO[t].c}"></span><span class="n">${count(t) || ''}</span>`;
     b.addEventListener('click', () => selectItem(t, true));
     hb.appendChild(b);
   });
@@ -1028,11 +1100,68 @@ function renderBag(){
   };
   const sec = (title, ids) => `<div class="set-sec"><h3>${title}</h3><div class="bag-grid">${ids.map(card).join('')}</div></div>`;
   $('bagBody').innerHTML = sec('도구', [ROD, NET]) + sec('물고기', [SARDINE, BREAM, GOLDFISH, MINNOW, TROUT, BOOT]) + sec('곤충', [BUTTERFLY, LADYBUG, FIREFLY]);
-  $('dexCount').textContent = `도감 ${DEX.filter(t => seen[t]).length}/${DEX.length}`;
+  $('dexCount').textContent = `도감 ${DEX.filter(t => seen[t]).length}/${DEX.length} · ${coins.toLocaleString()}코인`;
 }
-const modals = ['craft','bag','settings'];
+/* ---------- shop ---------- */
+let shopTab = 'sell';
+const neededByQuest = t => villagers.some(v => v.accepted && v.qi < v.def.quests.length && v.def.quests[v.qi].need && v.def.quests[v.qi].need[t]);
+function renderShop(){
+  $('shopCoins').textContent = `${coins.toLocaleString()}코인`;
+  document.querySelectorAll('#shop .tab').forEach(b => { const on = b.dataset.tab === shopTab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+  const list = $('shopList'); list.innerHTML = '';
+  if (shopTab === 'sell'){
+    $('shopNote').textContent = '모은 물건을 코인으로 바꿔요. 이웃의 부탁에 필요한 물건에는 표시가 붙어요.';
+    const ids = Object.keys(SELL).map(Number).filter(t => count(t) > 0);
+    if (!ids.length){ list.innerHTML = '<div class="empty-note">팔 물건이 없어요. 낚시나 채집을 하고 다시 와 보세요.</div>'; return; }
+    for (const t of ids){
+      const row = document.createElement('div'); row.className = 'shop-row';
+      row.innerHTML = `<span class="${icoClass(t)}" style="--c:${INFO[t].c}"></span><div style="min-width:0"><div class="nm">${INFO[t].name}${neededByQuest(t) ? '<span class="tag">부탁에 필요</span>' : ''}</div><div class="pr">${count(t)}개 · 개당 ${SELL[t]}코인</div></div>`;
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const one = document.createElement('button'); one.className = 'btn'; one.textContent = '1개';
+      one.addEventListener('click', () => sell(t, 1));
+      const all = document.createElement('button'); all.className = 'btn primary'; all.textContent = `모두 ${count(t)*SELL[t]}`;
+      all.addEventListener('click', () => sell(t, count(t)));
+      acts.append(one, all); row.appendChild(acts); list.appendChild(row);
+    }
+  } else {
+    $('shopNote').textContent = '코인으로 블록을 살 수 있어요. 유리와 딸기 블록은 잡화점에서만 팔아요.';
+    for (const [t, price] of BUY){
+      const row = document.createElement('div'); row.className = 'shop-row';
+      row.innerHTML = `<span class="${icoClass(t)}" style="--c:${INFO[t].c}"></span><div style="min-width:0"><div class="nm">${INFO[t].name}</div><div class="pr">${price}코인 · 가진 수 ${count(t)}</div></div>`;
+      const acts = document.createElement('div'); acts.className = 'acts';
+      for (const n of [1, 5]){
+        const b = document.createElement('button'); b.className = 'btn' + (n === 1 ? '' : ' primary');
+        b.textContent = `${n}개 ${price*n}`; b.disabled = coins < price*n;
+        b.addEventListener('click', () => buy(t, n, price));
+        acts.appendChild(b);
+      }
+      row.appendChild(acts); list.appendChild(row);
+    }
+  }
+}
+function sell(t, n){
+  n = Math.min(n, count(t)); if (n <= 0) return;
+  take(t, n); coins += SELL[t]*n;
+  toast(`${INFO[t].name} ${n}개를 팔아서 ${SELL[t]*n}코인을 받았어요`);
+  renderShop(); scheduleSave();
+}
+function buy(t, n, price){
+  if (coins < price*n){ toast('코인이 모자라요'); return; }
+  coins -= price*n; give(t, n);
+  toast(`${INFO[t].name} ${n}개를 샀어요`);
+  renderShop(); scheduleSave();
+}
+document.querySelectorAll('#shop .tab').forEach(b => b.addEventListener('click', () => { shopTab = b.dataset.tab; renderShop(); }));
+
+const modals = ['craft','bag','settings','shop'];
 const anyModal = () => modals.some(id => !$(id).hidden);
-function openModal(id){ for (const m of modals) $(m).hidden = m !== id; if (id==='craft') renderRecipes(); if (id==='bag') renderBag(); if (id==='settings'){ $('resetConfirm').hidden = true; renderSettings(); } }
+function openModal(id){
+  for (const m of modals) $(m).hidden = m !== id;
+  if (id==='craft') renderRecipes();
+  if (id==='bag') renderBag();
+  if (id==='shop') renderShop();
+  if (id==='settings'){ $('resetConfirm').hidden = true; $('islandConfirm').hidden = true; renderSettings(); }
+}
 function closeModals(){ for (const m of modals) $(m).hidden = true; rebinding = null; }
 function toggleModal(id){ if ($(id).hidden) openModal(id); else closeModals(); }
 $('btnCraft').addEventListener('click', () => openModal('craft'));
@@ -1042,9 +1171,15 @@ $('craftClose').addEventListener('click', closeModals);
 $('bagClose').addEventListener('click', closeModals);
 $('setClose').addEventListener('click', closeModals);
 for (const id of modals) $(id).addEventListener('click', e => { if (e.target.id === id) closeModals(); });
-$('btnReset').addEventListener('click', () => { $('resetConfirm').hidden = false; });
+$('btnReset').addEventListener('click', () => { $('resetConfirm').hidden = false; $('islandConfirm').hidden = true; });
 $('resetNo').addEventListener('click', () => { $('resetConfirm').hidden = true; });
-$('resetYes').addEventListener('click', () => { newGame(Math.floor(Math.random()*1e9)); closeModals(); toast('새 섬이 만들어졌어요'); });
+$('resetYes').addEventListener('click', () => { newGame(Math.floor(Math.random()*1e9)); closeModals(); toast('처음부터 다시 시작했어요'); });
+$('btnNewIsland').addEventListener('click', () => { $('islandConfirm').hidden = false; $('resetConfirm').hidden = true; });
+$('islandNo').addEventListener('click', () => { $('islandConfirm').hidden = true; });
+$('islandYes').addEventListener('click', () => { newIsland(Math.floor(Math.random()*1e9)); closeModals(); toast('새 섬이 만들어졌어요. 가방과 우정은 그대로예요'); });
+$('btnShop').addEventListener('click', () => openModal('shop'));
+$('shopClose').addEventListener('click', closeModals);
+$('shop').addEventListener('click', e => { if (e.target.id === 'shop') closeModals(); });
 $('btnMode').addEventListener('click', () => setMode(mode==='mine' ? 'place' : 'mine'));
 $('btnTalk').addEventListener('click', () => talk(nearestVillager()));
 $('btnPull').addEventListener('click', () => pull());
@@ -1062,7 +1197,7 @@ function renderSettings(){
   $('setBody').innerHTML = `
     <div class="set-sec">
       <h3>키보드</h3>
-      <p class="set-note">바꾸고 싶은 동작의 버튼을 누른 다음 원하는 키를 누르세요. 다른 동작이 쓰던 키면 서로 바뀌어요. Esc를 누르면 취소돼요. 방향키는 따로 정하지 않으면 항상 이동에 쓰이고, 숫자 1~9는 블록 선택이에요.</p>
+      <p class="set-note">바꾸고 싶은 동작의 버튼을 누른 다음 원하는 키를 누르세요. 다른 동작이 쓰던 키면 서로 바뀌어요. Esc를 누르면 취소돼요. 방향키는 따로 정하지 않으면 항상 이동에 쓰이고, 숫자 1~0과 - 키는 블록 선택이에요.</p>
       ${keys}
       <div class="row" style="justify-content:flex-start"><button class="btn" id="keysReset">키 설정만 기본값으로</button></div>
     </div>
@@ -1117,7 +1252,7 @@ function renderHint(){
   const mv = ['forward','left','back','right'].map(K);
   const mvTxt = mv.every(s => s.length === 1) ? mv.join('') : mv.join(' ');
   const lc = settings.swapMouse ? '우클릭' : '클릭', rc = settings.swapMouse ? '클릭' : '우클릭';
-  $('hint').innerHTML = `<b>${mvTxt}</b> 이동 · <b>${K('jump')}</b> 점프 · <b>${K('run')}</b> 달리기<br><b>드래그</b> 시점 · <b>휠</b> 확대<br><b>${lc}</b> 캐기/놓기 · <b>${rc}</b> 놓기<br><b>${K('talk')}</b> 대화 · <b>${K('craft')}</b> 제작 · <b>${K('bag')}</b> 가방 · <b>1~9</b> 블록`;
+  $('hint').innerHTML = `<b>${mvTxt}</b> 이동 · <b>${K('jump')}</b> 점프 · <b>${K('run')}</b> 달리기<br><b>드래그</b> 시점 · <b>휠</b> 확대<br><b>${lc}</b> 캐기/놓기 · <b>${rc}</b> 놓기<br><b>${K('talk')}</b> 대화 · <b>${K('craft')}</b> 제작 · <b>${K('bag')}</b> 가방 · <b>1~0, -</b> 블록`;
   $('howtoPc').innerHTML = `<dt>이동</dt><dd>${mvTxt} (또는 방향키), ${K('jump')}로 점프, ${K('run')}로 달리기</dd>
     <dt>시점</dt><dd>마우스 드래그, 휠로 확대·축소</dd>
     <dt>캐기·놓기</dt><dd>${lc}로 캐기 (놓기 모드면 놓기), ${rc}로 놓기</dd>
@@ -1392,11 +1527,15 @@ function actAt(cx, cy, secondary){
   if (dialogOpen) return;
   if (fishing){ pull(); return; }
   setRay(cx, cy);
-  const targets = pickables.concat([water, riverMesh, fallMesh], bugs.map(b => b.hit), villagers.map(v => v.m.g));
+  const targets = pickables.concat([water, riverMesh, fallMesh, stall.g], bugs.map(b => b.hit), villagers.map(v => v.m.g));
   const hits = ray.intersectObjects(targets, true);
   const doPlace = secondary || mode === 'place';
   for (const h of hits){
     const o = h.object;
+    if (o.userData.shop){
+      if (nearShop()) openModal('shop'); else toast('잡화점에 조금 더 가까이 가 보세요');
+      return;
+    }
     if (o.userData.villagerRef){
       const v = o.userData.villagerRef;
       if (nearV(v)) talk(v); else toast(`${v.def.name}에게 조금 더 가까이 가 보세요`);
@@ -1465,7 +1604,7 @@ function isDown(a){
 }
 function oneShot(a){
   if (a === 'jump') jumpQueued = true;
-  else if (a === 'talk'){ if (fishing) pull(); else if (dialogOpen) closeDialog(); else { const v = nearestVillager(); if (v) talk(v); } }
+  else if (a === 'talk'){ if (fishing) pull(); else if (dialogOpen) closeDialog(); else { const v = nearestVillager(); if (v) talk(v); else if (nearShop()) openModal('shop'); } }
   else if (a === 'mode') setMode(mode==='mine' ? 'place' : 'mine');
   else if (a === 'craft') toggleModal('craft');
   else if (a === 'bag') toggleModal('bag');
@@ -1483,8 +1622,8 @@ window.addEventListener('keydown', e => {
   }
   held[e.code] = true;
   if (a){ e.preventDefault(); if (!e.repeat) oneShot(a); return; }
-  const n = parseInt(e.key, 10);
-  if (n >= 1 && n <= ORDER.length) selectItem(ORDER[n-1], true);
+  const si = SLOT_KEYS.indexOf(e.key);
+  if (si >= 0 && si < ORDER.length) selectItem(ORDER[si], true);
 });
 window.addEventListener('keyup', e => { held[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in held) held[k] = false; });
@@ -1559,25 +1698,28 @@ function showHighlightFromHover(){ if (hoverXY && !isCoarse) hoverDirty = true; 
 function toB64(u8){ let s=''; for (let i=0; i<u8.length; i+=8192) s += String.fromCharCode.apply(null, u8.subarray(i, i+8192)); return btoa(s); }
 function fromB64(b){ const s = atob(b); const u = new Uint8Array(s.length); for (let i=0; i<s.length; i++) u[i] = s.charCodeAt(i); return u; }
 function serialize(){
-  return {v:3, seed, w:toB64(world), inv, seen, dayT,
+  return {v:3, seed, w:toB64(world), inv, seen, coins, shop:shopPos, dayT,
     p:[player.pos.x, player.pos.y, player.pos.z], cam:{yaw:cam.yaw, pitch:cam.pitch, dist:cam.dist},
     vs:villagers.map(v => ({qi:v.qi, accepted:v.accepted, home:v.home, pos:[v.pos.x, v.pos.y, v.pos.z]}))};
 }
 function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(serialize())); } catch(e){} }
 let saveTimer = 0;
 function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(save, 1500); }
-let worldUpgraded = false;
+let worldUpgraded = false, shopIsNew = false;
 function load(data){
   if (!data || ![1,2,3].includes(data.v)) return false;
   try {
     let w = null; try { w = fromB64(data.w); } catch(e){}
     const keepWorld = data.v === 3 && w && w.length === W*H*D;
-    inv = data.inv || {}; seen = data.seen || {};
+    inv = data.inv || {}; seen = data.seen || {}; coins = Math.max(0, Math.floor(data.coins || 0));
     for (const t in inv) if (inv[t] > 0) seen[t] = 1;
     dayT = typeof data.dayT === 'number' ? data.dayT : .05;
     if (data.cam) Object.assign(cam, data.cam);
     // older, smaller islands get a fresh bigger island; bag and friendships carry over
-    if (keepWorld){ world = w; seed = data.seed || 1; }
+    if (keepWorld){
+      world = w; seed = data.seed || 1;
+      if (data.shop) shopPos = data.shop; else { shopPos = findHome(5.6, 7); shopIsNew = true; }
+    }
     else { generate(Math.floor(Math.random()*1e9)); worldUpgraded = true; }
     villagers.forEach((v, i) => {
       v.qi = 0; v.accepted = false;
@@ -1591,9 +1733,17 @@ function load(data){
     dirty = true; return true;
   } catch(e){ return false; }
 }
+function newIsland(s){
+  generate(s);
+  for (const v of villagers) spawnAtHome(v);
+  while (bugs.length) removeBug(0);
+  if (fishing) endFishing();
+  const sp = spawnPoint(); player.pos.set(sp.x, sp.y, sp.z); player.vel.set(0,0,0);
+  rebuild(); renderHotbar(); renderQuests(); save();
+}
 function newGame(s){
   generate(s);
-  inv = {}; seen = {}; dayT = .05;
+  inv = {}; seen = {}; coins = 0; dayT = .05;
   for (const v of villagers){ v.qi = 0; v.accepted = false; spawnAtHome(v); }
   while (bugs.length) removeBug(0);
   if (fishing) endFishing();
@@ -1704,6 +1854,7 @@ function update(dt){
   const nv = nearestVillager();
   const tb = $('btnTalk');
   tb.hidden = !nv || dialogOpen || !!fishing;
+  $('btnShop').hidden = !!nv || dialogOpen || !!fishing || anyModal() || !nearShop();
   if (nv){ const label = `${josa(nv.def.name,'와','과')} 대화`; if (tb.textContent !== label) tb.textContent = label; }
 }
 function ambient(dt){
@@ -1796,10 +1947,11 @@ $('btnStart').addEventListener('click', () => {
   camTarget.set(player.pos.x, player.pos.y+1.1, player.pos.z);
   canvas.focus();
   if (worldUpgraded) toast('섬이 넓어지고 산과 폭포가 생겼어요! 가방과 이웃과의 우정은 그대로예요');
+  if (shopIsNew || worldUpgraded) setTimeout(() => toast('섬에 잡화점이 생겼어요! 물건을 팔고 살 수 있어요'), 900);
   else if (villagers.every(v => v.qi === 0 && !v.accepted)) toast('깃발 옆의 이웃들에게 말을 걸어 보세요');
   else if (villagers.slice(1).every(v => v.qi === 0 && !v.accepted)) toast('섬에 새 이웃 포근과 보리가 이사 왔어요!');
 });
-if (location.hostname === 'localhost') window.__bi = {player, villagers, cam, bugs, give, talk, startFishing, pull, isWaterAt, camera, THREE, get inv(){ return inv; }, get fishing(){ return fishing; }, setTime(x){ dayT = x; }, get daylight(){ return daylight; }, get settings(){ return settings; }};
+if (location.hostname === 'localhost') window.__bi = {player, villagers, cam, bugs, give, talk, startFishing, pull, isWaterAt, camera, THREE, openModal, get inv(){ return inv; }, get coins(){ return coins; }, get shopPos(){ return shopPos; }, get fishing(){ return fishing; }, setTime(x){ dayT = x; }, get daylight(){ return daylight; }, get settings(){ return settings; }};
 const hot = window.claude && window.claude.hot;
 if (hot && hot.snapshot) { try { hot.snapshot(() => ({save: serialize()})); } catch(e){} }
 if (hot && hot.ready) hot.ready(start); else start(hot && hot.data ? hot.data : {});

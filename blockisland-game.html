@@ -289,7 +289,7 @@ body:not(.touch) .touch-only{display:none}
 <div id="start">
   <div class="sheet">
     <h1>블록섬 <em>이야기</em></h1>
-    <p>작은 블록 섬에 이웃 셋이 살고 있어요. 나무를 캐고, 물고기를 낚고, 벌레를 잡으며 이웃들의 부탁을 들어주세요.</p>
+    <p>블록 섬에 이웃 셋이 살고 있어요. 나무를 캐고, 물고기를 낚고, 벌레를 잡으며 이웃들의 부탁을 들어주세요. 북쪽 산 위에서 시작하는 폭포도 찾아보세요.</p>
     <dl class="howto pc-only" id="howtoPc"></dl>
     <dl class="howto touch-only">
       <dt>이동</dt><dd id="howtoJoy">화면 왼쪽을 누르고 끌기</dd>
@@ -350,9 +350,9 @@ function keyLabel(code){
 const actionLabel = a => (ACTIONS.find(x => x[0] === a) || [a, a])[1];
 
 /* ---------- world constants ---------- */
-const W = 40, D = 40, H = 20, SEA = 4.6, REACH = 6.5, SAVE_KEY = 'blockisland-v1';
-const AIR=0, GRASS=1, DIRT=2, SAND=3, STONE=4, WOOD=5, LEAF=6, PLANK=7, BRICK=8, LANTERN=9, FLOWER=10;
-const ROD=20, NET=21, SARDINE=30, BREAM=31, GOLDFISH=32, BOOT=33, BUTTERFLY=40, LADYBUG=41, FIREFLY=42;
+const W = 64, D = 64, H = 24, SEA = 4.6, REACH = 6.5, SAVE_KEY = 'blockisland-v1';
+const AIR=0, GRASS=1, DIRT=2, SAND=3, STONE=4, WOOD=5, LEAF=6, PLANK=7, BRICK=8, LANTERN=9, FLOWER=10, WATER=11, FALL=12;
+const ROD=20, NET=21, SARDINE=30, BREAM=31, GOLDFISH=32, BOOT=33, MINNOW=34, TROUT=35, BUTTERFLY=40, LADYBUG=41, FIREFLY=42;
 const INFO = {
   [GRASS]:  {name:'잔디',   c:'#9fdc8a', drop:DIRT},
   [DIRT]:   {name:'흙',     c:'#c9a36f', drop:DIRT},
@@ -364,6 +364,10 @@ const INFO = {
   [BRICK]:  {name:'벽돌',   c:'#e8a08c', drop:BRICK},
   [LANTERN]:{name:'등불',   c:'#ffe9a3', drop:LANTERN},
   [FLOWER]: {name:'꽃',     c:'#ff9fb8', drop:FLOWER},
+  [WATER]:  {name:'물',     c:'#38b6d6'},
+  [FALL]:   {name:'폭포',   c:'#cfefff'},
+  [MINNOW]:   {name:'피라미',     c:'#a9c9b8', kind:'fish', desc:'강과 폭포 웅덩이에 사는 작은 물고기. 떼 지어 다녀요.'},
+  [TROUT]:    {name:'무지개송어', c:'#ff9fc8', kind:'fish', desc:'몸에 무지갯빛 줄무늬가 있어요. 폭포 아래 웅덩이에서 잘 잡혀요.'},
   [ROD]:      {name:'낚싯대',   c:'#7fb8ff', kind:'tool', cls:'rod', desc:'포근이 빌려준 낚싯대. 물을 누르면 찌를 던져요.', how:'포근에게 받을 수 있어요'},
   [NET]:      {name:'잠자리채', c:'#ffc94d', kind:'tool', cls:'net', desc:'보리가 준 잠자리채. 벌레를 누르면 잡아요.', how:'보리에게 받을 수 있어요'},
   [SARDINE]:  {name:'정어리',     c:'#9fb7cf', kind:'fish', desc:'은빛으로 반짝이는 작은 물고기. 어디서나 잘 잡혀요.'},
@@ -375,7 +379,7 @@ const INFO = {
   [FIREFLY]:  {name:'반딧불이',   c:'#d8ff7a', kind:'bug', desc:'밤에만 나타나 반짝반짝 빛나요.'},
 };
 const ORDER = [WOOD, PLANK, STONE, BRICK, DIRT, SAND, LEAF, LANTERN, FLOWER];
-const DEX = [SARDINE, BREAM, GOLDFISH, BOOT, BUTTERFLY, LADYBUG, FIREFLY];
+const DEX = [SARDINE, BREAM, GOLDFISH, BOOT, MINNOW, TROUT, BUTTERFLY, LADYBUG, FIREFLY];
 const RECIPES = [
   {out:PLANK, n:2, need:{[WOOD]:1}},
   {out:BRICK, n:1, need:{[STONE]:2}},
@@ -384,7 +388,7 @@ const RECIPES = [
 
 /* ---------- villagers ---------- */
 const VILLAGERS = [
-  {id:'momo', name:'모모', kind:'bunny', color:0xff7f9e, css:'#ff9fb8', where:'분홍 깃발', angle:.35, maxR:6,
+  {id:'momo', name:'모모', kind:'bunny', color:0xff7f9e, css:'#ff9fb8', where:'분홍 깃발', angle:.35, maxR:9,
    chat:['오늘 바람이 기분 좋다~', '판자 집은 비 오는 날 소리가 좋을 것 같아.', '포근이는 하루 종일 바다만 보고 있더라.', '보리가 또 나비를 쫓아다니고 있었어!'],
    nightChat:['밤이네. 등불 빛이 참 예쁘지?', '밤하늘 별 봤어? 이 섬은 별이 정말 잘 보여.'],
    quests:[
@@ -401,7 +405,7 @@ const VILLAGERS = [
      intro:'마지막 부탁이야! 분홍 깃발 근처에 판자 블록을 10개 이상 놓아서 작은 집을 지어 줄래? 모양은 마음대로 해도 좋아.',
      thanks:'이게 내 집이야? 정말 최고야! 앞으로 잘 부탁해, 이웃!'},
   ]},
-  {id:'pogeun', name:'포근', kind:'bear', color:0x7fb8ff, css:'#9cc8ff', where:'바닷가 파란 깃발', angle:2.6, maxR:18,
+  {id:'pogeun', name:'포근', kind:'bear', color:0x7fb8ff, css:'#9cc8ff', where:'바닷가 파란 깃발', angle:2.3, maxR:30,
    chat:['파도 소리를 들으면 마음이 편해져.', '물고기는 서두르면 도망가. 천천히 기다려야 해.', '모모가 만든 등불, 밤바다에서 보면 참 예뻐.'],
    nightChat:['밤바다는 조용해서 좋아. 황금 물고기도 이럴 때 나온대.', '반딧불이가 바닷가까지 날아왔더라.'],
    quests:[
@@ -416,7 +420,7 @@ const VILLAGERS = [
      intro:'전설의 황금 물고기 이야기 들어 봤어? 밤에 더 잘 잡힌대. 평생 한 번은 보고 싶었어.',
      thanks:'세상에... 진짜 황금빛이야! 넌 이 섬 최고의 낚시꾼이야.'},
   ]},
-  {id:'bori', name:'보리', kind:'cat', color:0xffc94d, css:'#ffd36e', where:'노란 깃발', angle:4.45, maxR:10,
+  {id:'bori', name:'보리', kind:'cat', color:0xffc94d, css:'#ffd36e', where:'노란 깃발', angle:3.75, maxR:16,
    chat:['야옹~ 오늘은 뭘 잡으러 갈까?', '나비는 꽃 근처에 제일 많아!', '무당벌레 등에 점이 몇 개인지 세어 봤어?'],
    nightChat:['밤이다! 반딧불이 시간이야!', '어두우니까 눈이 반짝반짝해지는 것 같아.'],
    quests:[
@@ -443,8 +447,9 @@ const idx = (x,y,z) => x + z*W + y*W*D;
 const inB = (x,y,z) => x>=0 && x<W && z>=0 && z<D && y>=0 && y<H;
 const get = (x,y,z) => inB(x,y,z) ? world[idx(x,y,z)] : AIR;
 const put = (x,y,z,v) => { if (inB(x,y,z)) { world[idx(x,y,z)] = v; dirty = true; } };
-const opaque = b => b !== AIR && b !== FLOWER;
-const solid = b => b !== AIR && b !== FLOWER;
+const isWaterB = b => b === WATER || b === FALL;
+const opaque = b => b !== AIR && b !== FLOWER && b !== WATER && b !== FALL;
+const solid = opaque;
 
 /* ---------- generation ---------- */
 function rng(s){ return function(){ s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -462,22 +467,75 @@ function findHome(angle, maxR){
     const x = Math.floor(W/2 + Math.cos(angle)*r), z = Math.floor(D/2 + Math.sin(angle)*r);
     if (x<1 || z<1 || x>=W-1 || z>=D-1) break;
     const h = topY(x,z), top = get(x,h-1,z);
-    if (h>=6 && h<H-3 && (top===GRASS || top===SAND || top===DIRT)) best = {x, z};
+    if (h>=6 && h<H-3 && (top===GRASS || top===SAND || top===DIRT) && !isWaterB(get(x,h,z)) && !isWaterB(get(x+1,h,z+1))) best = {x, z};
   }
   return best || {x:Math.floor(W/2 + Math.cos(angle)*3), z:Math.floor(D/2 + Math.sin(angle)*3)};
 }
 
+function spawnPoint(){
+  const cx = W>>1, cz = D>>1;
+  for (let r=0; r<24; r++) for (let a=0; a<16; a++){
+    const x = Math.round(cx + Math.cos(a/16*6.283)*r), z = Math.round(cz + Math.sin(a/16*6.283)*r);
+    if (!inB(x,0,z)) continue;
+    const h = topY(x,z);
+    if (h>=6 && get(x,h-1,z)===GRASS && !isWaterB(get(x,h,z))) return {x:x+.5, y:h+.1, z:z+.5};
+  }
+  return {x:cx+.5, y:topY(cx,cz)+.1, z:cz+.5};
+}
+// mountain north-west of center; its south face steps down in two cliffs that the river pours over
+const MT = {x: Math.floor(W/2)-6, z: Math.floor(D/2)-10, R: 15};
+function setC(x,y,z,v){ if (inB(x,y,z)) world[idx(x,y,z)] = v; }
+function clearAbove(X,Z,level){ for (let y=level+1; y<H; y++) if (inB(X,y,Z) && get(X,y,Z) !== AIR) setC(X,y,Z,AIR); }
+function bedTop(x,z){ for (let y=H-1; y>=0; y--){ const b = get(x,y,z); if (solid(b) || b === WATER) return y+1; } return 0; }
+function carveRiver(R){
+  let x = MT.x, z = MT.z;
+  let level = Math.min(topY(x,z), topY(x+1,z)) - 1;
+  for (let ax=-1; ax<=2; ax++) for (let az=-1; az<=1; az++){ clearAbove(x+ax, z+az, level); setC(x+ax, level, z+az, WATER); }
+  for (let step=0; step<90; step++){
+    z += 1;
+    if (z >= D-1) break;
+    if (step > 3 && R() < .15){ const nx = x + (R() < .5 ? -1 : 1); if (nx > 2 && nx < W-4) x = nx; }
+    const hmin = Math.min(bedTop(x,z), bedTop(x+1,z));
+    if (hmin - 1 < level){
+      const nl = Math.max(hmin - 1, 3);
+      for (const X of [x, x+1]){
+        clearAbove(X, z, level);
+        for (let y=nl+1; y<=level; y++) setC(X, y, z, FALL);
+        setC(X, nl, z, WATER);
+      }
+      if (level - nl >= 3){
+        for (let ax=-2; ax<=3; ax++) for (let az=0; az<=3; az++){
+          const X = x+ax, Z = z+az;
+          if (!inB(X,0,Z) || (az === 0 && (ax === 0 || ax === 1))) continue;
+          const tp = topY(X,Z) - 1;
+          if (tp >= nl && tp <= nl+2){ clearAbove(X, Z, nl); setC(X, nl, Z, WATER); }
+        }
+        if (nl > 1) for (const X of [x, x+1]) for (const Z of [z+1, z+2]) setC(X, nl-1, Z, WATER);
+      }
+      level = nl;
+    } else {
+      for (const X of [x, x+1]){ clearAbove(X, z, level); setC(X, level, z, WATER); }
+    }
+    if (hmin <= 5) break;
+  }
+}
 function generate(s){
   seed = s;
   world = new Uint8Array(W*H*D);
   const R = rng(s);
   for (let z=0; z<D; z++) for (let x=0; x<W; x++){
-    const dx=(x+.5-W/2)/(W*.4), dz=(z+.5-D/2)/(D*.4), d=Math.hypot(dx,dz);
-    const n = vnoise(x*.13, z*.13, s)*.65 + vnoise(x*.3, z*.3, s+7)*.35;
+    const dx=(x+.5-W/2)/(W*.42), dz=(z+.5-D/2)/(D*.42), d=Math.hypot(dx,dz);
+    const n = vnoise(x*.11, z*.11, s)*.65 + vnoise(x*.27, z*.27, s+7)*.35;
     const island = 1-d*d;
-    let h = Math.round(2.2 + island*4.5 + (n-.5)*4 + (island>0 ? 1.2 : 0));
-    h = Math.max(1, Math.min(11, h));
-    if (d < .16) h = Math.max(6, Math.min(h, 8));
+    let h = 2.2 + island*4.5 + (n-.5)*4 + (island>0 ? 1.2 : 0);
+    const mx = x - MT.x, mz = z - MT.z, md = Math.hypot(mx, mz);
+    if (md < MT.R){
+      const south = md > 0 ? mz/md : 0;
+      if (south > .55) h += md < MT.R*.3 ? 8 : md < MT.R*.56 ? 4 : 0;
+      else h += 8*Math.min(1, Math.max(0, (1 - md/MT.R)*1.45));
+    }
+    h = Math.max(1, Math.min(H-5, Math.round(h)));
+    if (d < .12) h = Math.max(6, Math.min(h, 8));
     for (let y=0; y<h; y++){
       let b;
       if (y === h-1) b = h<=5 ? SAND : GRASS;
@@ -486,10 +544,11 @@ function generate(s){
       world[idx(x,y,z)] = b;
     }
   }
+  carveRiver(R);
   for (const v of villagers) v.home = findHome(v.def.angle, v.def.maxR);
   const nearHome = (x,z,r) => villagers.some(v => Math.hypot(x-v.home.x, z-v.home.z) < r);
   const trees = []; let tries = 0;
-  while (trees.length < 12 && tries < 700){
+  while (trees.length < 30 && tries < 1500){
     tries++;
     const x = 2+Math.floor(R()*(W-4)), z = 2+Math.floor(R()*(D-4)), h = topY(x,z);
     if (h < 6 || get(x,h-1,z) !== GRASS) continue;
@@ -507,14 +566,14 @@ function generate(s){
     }
     for (const [ax,az] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]) if (inB(x+ax,top+1,z+az)) world[idx(x+ax,top+1,z+az)] = LEAF;
   }
-  for (let i=0, made=0; i<200 && made<7; i++){
+  for (let i=0, made=0; i<500 && made<14; i++){
     const x = 2+Math.floor(R()*(W-4)), z = 2+Math.floor(R()*(D-4)), h = topY(x,z);
     if (h < 6 || get(x,h-1,z)!==GRASS || Math.hypot(x-W/2,z-D/2)<3 || nearHome(x,z,3)) continue;
     world[idx(x,h,z)] = STONE; if (R()<.5) world[idx(x,h+1,z)] = STONE;
     if (R()<.6 && get(x+1,h,z)===AIR && solid(get(x+1,h-1,z))) world[idx(x+1,h,z)] = STONE;
     made++;
   }
-  for (let i=0, made=0; i<500 && made<48; i++){
+  for (let i=0, made=0; i<1400 && made<110; i++){
     const x = 1+Math.floor(R()*(W-2)), z = 1+Math.floor(R()*(D-2)), h = topY(x,z);
     if (get(x,h-1,z)!==GRASS || get(x,h,z)!==AIR || h>=H || nearHome(x,z,1.5)) continue;
     world[idx(x,h,z)] = FLOWER; made++;
@@ -529,7 +588,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isCoarse ? 1.5 : 2))
 const scene = new THREE.Scene();
 const skyColor = new THREE.Color(0xbfe7ff);
 scene.background = skyColor;
-scene.fog = new THREE.Fog(skyColor, 45, 115);
+scene.fog = new THREE.Fog(skyColor, 60, 170);
 const camera = new THREE.PerspectiveCamera(55, 1, .1, 400);
 const hemi = new THREE.HemisphereLight(0xffffff, 0x9bb7a0, .65); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff3dd, .8); scene.add(sun); scene.add(sun.target);
@@ -568,7 +627,7 @@ const MATS = {
   [LEAF]: lam(T.leaf), [PLANK]: lam(T.plank), [BRICK]: lam(T.brick), [LANTERN]: lanternMat,
 };
 const boxGeo = new THREE.BoxGeometry(1,1,1);
-const CAP = 5000;
+const CAP = 12000;
 const blockMeshes = {};
 const pickables = [];
 for (const k of Object.keys(MATS)){
@@ -576,13 +635,39 @@ for (const k of Object.keys(MATS)){
   m.count = 0; m.frustumCulled = false; m.userData = {type:+k, cells:[]};
   scene.add(m); blockMeshes[k] = m; pickables.push(m);
 }
-const FCAP = 900;
+const FCAP = 1500;
 const stemMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.08,.42,.08), new THREE.MeshLambertMaterial({color:0x5fae5a}), FCAP);
 const headMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.32,.2,.32), new THREE.MeshLambertMaterial({color:0xffffff}), FCAP);
 headMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(FCAP*3), 3);
 for (const m of [stemMesh, headMesh]){ m.count=0; m.frustumCulled=false; m.userData={type:FLOWER, cells:[]}; scene.add(m); pickables.push(m); }
 const PETALS = [0xff9fb8, 0xffd36e, 0xc7a6ff, 0xffffff, 0xff8a7a].map(c => new THREE.Color(c));
 let flowerCells = [];
+
+// river surfaces and falling water
+function waterTex(kind){
+  const c = document.createElement('canvas'); c.width = 16; c.height = 32;
+  const g = c.getContext('2d'), R = rng(kind === 'fall' ? 31 : 32);
+  if (kind === 'fall'){
+    g.fillStyle = '#d9f5ff'; g.fillRect(0,0,16,32);
+    for (let i=0; i<12; i++){ g.fillStyle = 'rgba(110,190,225,.45)'; g.fillRect(Math.floor(R()*16), Math.floor(R()*32), 1, 5+Math.floor(R()*9)); }
+    for (let i=0; i<16; i++){ g.fillStyle = `rgba(255,255,255,${.5+R()*.5})`; g.fillRect(Math.floor(R()*16), Math.floor(R()*32), 1, 3+Math.floor(R()*8)); }
+  } else {
+    g.fillStyle = '#ffffff'; g.fillRect(0,0,16,32);
+    for (let i=0; i<12; i++){ g.fillStyle = 'rgba(140,200,230,.5)'; g.fillRect(Math.floor(R()*14), Math.floor(R()*32), 2+Math.floor(R()*3), 1); }
+    for (let i=0; i<6; i++){ g.fillStyle = 'rgba(255,255,255,.9)'; g.fillRect(Math.floor(R()*14), Math.floor(R()*32), 2, 1); }
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = t.minFilter = THREE.NearestFilter;
+  return t;
+}
+const fallTex = waterTex('fall'), riverTex = waterTex('river');
+const riverMat = new THREE.MeshLambertMaterial({map:riverTex, color:0x38b6d6, transparent:true, opacity:.86, depthWrite:false});
+const fallMat = new THREE.MeshLambertMaterial({map:fallTex, color:0xdff6ff, transparent:true, opacity:.82, depthWrite:false, emissive:0x16384a});
+const riverGeo = new THREE.PlaneGeometry(1,1); riverGeo.rotateX(-Math.PI/2);
+const WCAP = 3000;
+const riverMesh = new THREE.InstancedMesh(riverGeo, riverMat, WCAP);
+const fallMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.98,1,.98), fallMat, WCAP);
+for (const m of [riverMesh, fallMesh]){ m.count = 0; m.frustumCulled = false; m.renderOrder = 2; m.userData = {water:true, cells:[]}; scene.add(m); }
+let fallBases = [];
 
 const M4 = new THREE.Matrix4();
 const NB = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
@@ -597,10 +682,12 @@ function exposed(x,y,z){
 }
 function rebuild(){
   const lists = {}; for (const k in blockMeshes) lists[k] = [];
-  const flowers = [];
+  const flowers = [], riverCells = [], fallCells = [], bases = [];
   for (let y=0; y<H; y++) for (let z=0; z<D; z++) for (let x=0; x<W; x++){
     const b = world[idx(x,y,z)]; if (!b) continue;
     if (b === FLOWER) { flowers.push([x,y,z]); continue; }
+    if (b === WATER){ if (get(x,y+1,z) !== WATER) riverCells.push([x,y,z]); continue; }
+    if (b === FALL){ fallCells.push([x,y,z]); if (get(x,y-1,z) !== FALL) bases.push([x+.5, y, z+.5]); continue; }
     if (lists[b] && exposed(x,y,z)) lists[b].push([x,y,z]);
   }
   for (const k in blockMeshes){
@@ -620,6 +707,13 @@ function rebuild(){
   stemMesh.instanceMatrix.needsUpdate = headMesh.instanceMatrix.needsUpdate = true;
   headMesh.instanceColor.needsUpdate = true;
   flowerCells = flowers;
+  const rn = Math.min(riverCells.length, WCAP);
+  for (let i=0; i<rn; i++){ const [x,y,z] = riverCells[i]; M4.makeTranslation(x+.5, y+.88, z+.5); riverMesh.setMatrixAt(i, M4); }
+  riverMesh.count = rn; riverMesh.userData.cells = riverCells; riverMesh.instanceMatrix.needsUpdate = true;
+  const fln = Math.min(fallCells.length, WCAP);
+  for (let i=0; i<fln; i++){ const [x,y,z] = fallCells[i]; M4.makeTranslation(x+.5, y+.5, z+.5); fallMesh.setMatrixAt(i, M4); }
+  fallMesh.count = fln; fallMesh.userData.cells = fallCells; fallMesh.instanceMatrix.needsUpdate = true;
+  fallBases = bases;
   dirty = false;
   placeFlags();
 }
@@ -636,7 +730,7 @@ const clouds = [];
     const g = new THREE.Group();
     const parts = 2+Math.floor(R()*3);
     for (let p=0; p<parts; p++){ const c = new THREE.Mesh(boxGeo, cloudMat); c.scale.set(3+R()*4, 1+R()*.6, 2+R()*3); c.position.set(p*2.2-parts, R()*.6, R()*2-1); g.add(c); }
-    g.position.set(R()*140-50, 22+R()*8, R()*140-50); scene.add(g); clouds.push(g);
+    g.position.set(W/2+R()*180-90, 30+R()*8, D/2+R()*180-90); scene.add(g); clouds.push(g);
   }
 }
 const starGeo = new THREE.BufferGeometry();
@@ -745,6 +839,12 @@ function collides(px,py,pz,r,h){
         if (solidAt(x+.5,y+.5,z+.5)) return true;
   return false;
 }
+function surfaceAt(px, py, pz){
+  let s = SEA;
+  const X = Math.floor(px), Z = Math.floor(pz);
+  for (let Y=Math.floor(py)-1; Y<=Math.floor(py)+2; Y++) if (get(X,Y,Z) === WATER && get(X,Y+1,Z) !== WATER) s = Math.max(s, Y+.88);
+  return s;
+}
 function moveBody(b, dx, dz, dt, r, h){
   for (const axis of ['x','z']){
     const d = axis==='x' ? dx : dz; if (!d) continue;
@@ -756,8 +856,11 @@ function moveBody(b, dx, dz, dt, r, h){
     }
   }
   b.vel.y -= 25*dt;
-  const inWater = b.pos.y + .5 < SEA;
-  if (b.pos.y + .9 < SEA){ b.vel.y += 42*dt; b.vel.y = Math.min(b.vel.y, 3.2); }
+  const surf = surfaceAt(b.pos.x, b.pos.y, b.pos.z);
+  const inFall = get(Math.floor(b.pos.x), Math.floor(b.pos.y+.6), Math.floor(b.pos.z)) === FALL;
+  const inWater = b.pos.y + .5 < surf;
+  if (inFall) b.vel.y = Math.min(b.vel.y, -3);
+  else if (b.pos.y + .9 < surf){ b.vel.y += 42*dt; b.vel.y = Math.min(b.vel.y, 3.2); }
   if (inWater) b.vel.y = Math.max(b.vel.y, -4);
   const ny = b.pos.y + b.vel.y*dt;
   if (collides(b.pos.x, ny, b.pos.z, r, h)){
@@ -924,7 +1027,7 @@ function renderBag(){
     return `<div class="bag-item${known?'':' unknown'}"><span class="${icoClass(t)}" style="--c:${I.c}"></span><div style="min-width:0"><div class="nm">${known?I.name:'???'}</div><div class="ct">${sub}</div></div>${known?`<div class="ds">${I.desc}</div>`:''}</div>`;
   };
   const sec = (title, ids) => `<div class="set-sec"><h3>${title}</h3><div class="bag-grid">${ids.map(card).join('')}</div></div>`;
-  $('bagBody').innerHTML = sec('도구', [ROD, NET]) + sec('물고기', [SARDINE, BREAM, GOLDFISH, BOOT]) + sec('곤충', [BUTTERFLY, LADYBUG, FIREFLY]);
+  $('bagBody').innerHTML = sec('도구', [ROD, NET]) + sec('물고기', [SARDINE, BREAM, GOLDFISH, MINNOW, TROUT, BOOT]) + sec('곤충', [BUTTERFLY, LADYBUG, FIREFLY]);
   $('dexCount').textContent = `도감 ${DEX.filter(t => seen[t]).length}/${DEX.length}`;
 }
 const modals = ['craft','bag','settings'];
@@ -1036,7 +1139,7 @@ window.addEventListener('keydown', e => {
 /* ---------- effects ---------- */
 const parts = [];
 const partGeo = new THREE.BoxGeometry(.13,.13,.13);
-for (let i=0; i<80; i++){
+for (let i=0; i<150; i++){
   const m = new THREE.Mesh(partGeo, new THREE.MeshLambertMaterial({color:0xffffff}));
   m.visible = false; scene.add(m); parts.push({m, v:new THREE.Vector3(), life:0});
 }
@@ -1046,6 +1149,20 @@ function burst(x,y,z,color,n,up){
     const p = parts[partI++ % parts.length];
     p.m.material.color.set(color); p.m.position.set(x,y,z); p.m.visible = true; p.m.scale.setScalar(1);
     p.v.set((Math.random()-.5)*4, 2+Math.random()*3+(up||0), (Math.random()-.5)*4); p.life = .7;
+  }
+}
+let foamT = 0;
+function foam(dt){
+  if (!fallBases.length) return;
+  foamT -= dt;
+  while (foamT < 0){
+    foamT += .035;
+    const b = pickOne(fallBases);
+    if (Math.hypot(b[0]-player.pos.x, b[2]-player.pos.z) > 45) continue;
+    const p = parts[partI++ % parts.length];
+    p.m.material.color.set(0xffffff); p.m.visible = true; p.m.scale.setScalar(.8);
+    p.m.position.set(b[0]+(Math.random()-.5)*.9, b[1]+.05, b[2]+(Math.random()-.5)*.9);
+    p.v.set((Math.random()-.5)*2.2, 1+Math.random()*1.8, (Math.random()-.5)*2.2); p.life = .5;
   }
 }
 function heartBurst(v){ burst(v.pos.x, v.pos.y+1.8, v.pos.z, 0xff7f9e, 14, 2); }
@@ -1091,9 +1208,9 @@ function grassSpot(){
 }
 function flowerSpot(){ if (!flowerCells.length) return grassSpot(); const c = pickOne(flowerCells); return {x:c[0]+.5, y:c[1], z:c[2]+.5}; }
 function wanted(type){
-  if (type === BUTTERFLY) return daylight > .45 ? 6 : 0;
-  if (type === LADYBUG) return daylight > .45 ? 4 : 1;
-  return daylight < .3 ? 9 : 0;
+  if (type === BUTTERFLY) return daylight > .45 ? 10 : 0;
+  if (type === LADYBUG) return daylight > .45 ? 7 : 2;
+  return daylight < .3 ? 16 : 0;
 }
 function removeBug(i){ const b = bugs[i]; scene.remove(b.g); if (b.parts.gm) b.parts.gm.dispose(); bugs.splice(i,1); }
 let spawnT = 0;
@@ -1129,7 +1246,7 @@ function updateBugs(dt){
       const X = Math.floor(nx), Z = Math.floor(nz);
       const ok = X>=1 && Z>=1 && X<W-1 && Z<D-1;
       const h = ok ? topY(X,Z) : 0;
-      if (!ok || h < 6 || Math.abs(h - g.position.y) > 1.01 || get(X,h-1,Z) === LEAF) b.heading += Math.PI*(.5+Math.random());
+      if (!ok || h < 6 || Math.abs(h - g.position.y) > 1.01 || get(X,h-1,Z) === LEAF || isWaterB(get(X,h,Z))) b.heading += Math.PI*(.5+Math.random());
       else g.position.set(nx, h, nz);
       g.rotation.y = b.heading;
     } else {
@@ -1158,13 +1275,14 @@ const fishLine = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({color:0xff
 fishLine.visible = false; fishLine.frustumCulled = false; scene.add(fishLine);
 const rodTip = new THREE.Vector3();
 function isWaterAt(x,z){ const X = Math.floor(x), Z = Math.floor(z); if (X<0||Z<0||X>=W||Z>=D) return true; return topY(X,Z) <= 4; }
-function startFishing(p){
+function startFishing(p, surf, river){
+  surf = surf || SEA;
   const X = Math.floor(p.x), Z = Math.floor(p.z);
-  const depth = (X<0||Z<0||X>=W||Z>=D) ? 4 : SEA - topY(X,Z);
-  fishing = {phase:'wait', timer:1.8+Math.random()*3.6, nib:0, depth};
-  bobber.position.set(p.x, SEA, p.z); bobber.visible = true; fishLine.visible = true; P.rod.visible = true;
+  const depth = river ? 1 : (X<0||Z<0||X>=W||Z>=D) ? 4 : SEA - topY(X,Z);
+  fishing = {phase:'wait', timer:1.8+Math.random()*3.6, nib:0, depth, surf, river:!!river};
+  bobber.position.set(p.x, surf, p.z); bobber.visible = true; fishLine.visible = true; P.rod.visible = true;
   player.face = Math.atan2(p.x-player.pos.x, p.z-player.pos.z);
-  burst(p.x, SEA+.1, p.z, 0xffffff, 5);
+  burst(p.x, surf+.1, p.z, 0xffffff, 5);
   const b = $('btnPull'); b.hidden = false; b.classList.remove('bite'); b.textContent = '기다리는 중…';
   hintOnce('fish', `찌가 쑥 들어가면 화면을 누르거나 ${keyLabel(settings.keys.talk)} 키로 당겨요`);
 }
@@ -1172,8 +1290,15 @@ function endFishing(msg){
   fishing = null; bobber.visible = false; fishLine.visible = false; P.rod.visible = false; $('btnPull').hidden = true;
   if (msg) toast(msg);
 }
-function rollFish(depth, night){
+function rollFish(depth, night, river){
   const r = Math.random();
+  if (river){
+    const g = night ? .08 : .03;
+    if (r < g) return GOLDFISH;
+    if (r < g+.05) return BOOT;
+    if (r < g+.05+.33) return TROUT;
+    return MINNOW;
+  }
   const gold = night ? .14 : .05, boot = .06, bream = .18 + Math.min(Math.max(depth,0),4)*.06;
   if (r < gold) return GOLDFISH;
   if (r < gold+boot) return BOOT;
@@ -1183,9 +1308,9 @@ function rollFish(depth, night){
 function pull(){
   if (!fishing) return;
   if (fishing.phase === 'bite'){
-    const f = rollFish(fishing.depth, daylight < .35), first = !seen[f];
+    const f = rollFish(fishing.depth, daylight < .35, fishing.river), first = !seen[f];
     give(f, 1);
-    burst(bobber.position.x, SEA+.3, bobber.position.z, INFO[f].c, 12, 2);
+    burst(bobber.position.x, fishing.surf+.3, bobber.position.z, INFO[f].c, 12, 2);
     endFishing(f === BOOT ? '낡은 장화를 낚았다... 아쉽다!' : `${josa(INFO[f].name,'를','을')} 낚았다!${first ? ' (도감에 새로 기록!)' : ''}`);
     scheduleSave();
   } else endFishing('너무 빨리 당겼어요. 찌가 쑥 들어갈 때 당겨요');
@@ -1196,14 +1321,14 @@ function updateFishing(dt, t){
   if (fishing.phase === 'wait'){
     if (Math.random() < dt*.7) fishing.nib = .14;
     fishing.nib *= Math.pow(.02, dt);
-    bobber.position.y = SEA + Math.sin(t*3)*.03 - fishing.nib;
+    bobber.position.y = fishing.surf + Math.sin(t*3)*.03 - fishing.nib;
     if (fishing.timer <= 0){
       fishing.phase = 'bite'; fishing.timer = 1.05;
-      burst(bobber.position.x, SEA+.1, bobber.position.z, 0xbfefff, 8, 1);
+      burst(bobber.position.x, fishing.surf+.1, bobber.position.z, 0xbfefff, 8, 1);
       const b = $('btnPull'); b.classList.add('bite'); b.textContent = '지금 당겨요!';
     }
   } else {
-    bobber.position.y = SEA - .2 + Math.sin(t*30)*.04;
+    bobber.position.y = fishing.surf - .2 + Math.sin(t*30)*.04;
     if (fishing.timer <= 0) endFishing('놓쳤어요... 다시 던져 봐요');
   }
   if (!fishing) return;
@@ -1253,8 +1378,8 @@ function place(x,y,z){
   const t = selected;
   if (!count(t)){ toast(`${josa(INFO[t].name,'가','이')} 없어요. 먼저 모아 오세요`); return; }
   if (!inB(x,y,z)){ toast('여기에는 놓을 수 없어요'); return; }
-  if (get(x,y,z) !== AIR) return;
-  if (t === FLOWER && !solid(get(x,y-1,z))){ toast('꽃은 땅 위에만 심을 수 있어요'); return; }
+  if (get(x,y,z) !== AIR && !isWaterB(get(x,y,z))) return;
+  if (t === FLOWER && (!solid(get(x,y-1,z)) || isWaterB(get(x,y,z)))){ toast('꽃은 마른 땅 위에만 심을 수 있어요'); return; }
   if (t !== FLOWER){
     if (overlapsBody(x,y,z,player.pos,PR,PH)){ toast('내가 서 있는 자리예요'); return; }
     for (const v of villagers) if (overlapsBody(x,y,z,v.pos,VR,VH)){ toast(`${v.def.name}의 자리예요`); return; }
@@ -1267,7 +1392,7 @@ function actAt(cx, cy, secondary){
   if (dialogOpen) return;
   if (fishing){ pull(); return; }
   setRay(cx, cy);
-  const targets = pickables.concat([water], bugs.map(b => b.hit), villagers.map(v => v.m.g));
+  const targets = pickables.concat([water, riverMesh, fallMesh], bugs.map(b => b.hit), villagers.map(v => v.m.g));
   const hits = ray.intersectObjects(targets, true);
   const doPlace = secondary || mode === 'place';
   for (const h of hits){
@@ -1290,7 +1415,15 @@ function actAt(cx, cy, secondary){
       const d = Math.hypot(p.x-player.pos.x, p.z-player.pos.z);
       if (d < 1.2) continue;
       if (d > 11){ toast('너무 멀어요. 물가로 다가가서 던져요'); return; }
-      startFishing(p); return;
+      startFishing(p, SEA, false); return;
+    }
+    if (o.userData.water){
+      if (o !== riverMesh || !count(ROD) || doPlace) continue;
+      const cell = o.userData.cells[h.instanceId]; if (!cell) continue;
+      const p = h.point, d = Math.hypot(p.x-player.pos.x, p.z-player.pos.z);
+      if (d < 1.2) continue;
+      if (d > 11){ toast('너무 멀어요. 물가로 다가가서 던져요'); return; }
+      startFishing(p, cell[1]+.88, true); return;
     }
     const bh = blockHit(h); if (!bh) continue;
     const [x,y,z] = bh.cell;
@@ -1426,31 +1559,35 @@ function showHighlightFromHover(){ if (hoverXY && !isCoarse) hoverDirty = true; 
 function toB64(u8){ let s=''; for (let i=0; i<u8.length; i+=8192) s += String.fromCharCode.apply(null, u8.subarray(i, i+8192)); return btoa(s); }
 function fromB64(b){ const s = atob(b); const u = new Uint8Array(s.length); for (let i=0; i<s.length; i++) u[i] = s.charCodeAt(i); return u; }
 function serialize(){
-  return {v:2, seed, w:toB64(world), inv, seen, dayT,
+  return {v:3, seed, w:toB64(world), inv, seen, dayT,
     p:[player.pos.x, player.pos.y, player.pos.z], cam:{yaw:cam.yaw, pitch:cam.pitch, dist:cam.dist},
     vs:villagers.map(v => ({qi:v.qi, accepted:v.accepted, home:v.home, pos:[v.pos.x, v.pos.y, v.pos.z]}))};
 }
 function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(serialize())); } catch(e){} }
 let saveTimer = 0;
 function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(save, 1500); }
+let worldUpgraded = false;
 function load(data){
-  if (!data || (data.v !== 1 && data.v !== 2)) return false;
+  if (!data || ![1,2,3].includes(data.v)) return false;
   try {
-    const w = fromB64(data.w); if (w.length !== W*H*D) return false;
-    world = w; seed = data.seed || 1; inv = data.inv || {}; seen = data.seen || {};
+    let w = null; try { w = fromB64(data.w); } catch(e){}
+    const keepWorld = data.v === 3 && w && w.length === W*H*D;
+    inv = data.inv || {}; seen = data.seen || {};
     for (const t in inv) if (inv[t] > 0) seen[t] = 1;
     dayT = typeof data.dayT === 'number' ? data.dayT : .05;
-    if (data.p) player.pos.set(data.p[0], data.p[1], data.p[2]);
     if (data.cam) Object.assign(cam, data.cam);
+    // older, smaller islands get a fresh bigger island; bag and friendships carry over
+    if (keepWorld){ world = w; seed = data.seed || 1; }
+    else { generate(Math.floor(Math.random()*1e9)); worldUpgraded = true; }
     villagers.forEach((v, i) => {
       v.qi = 0; v.accepted = false;
-      const s = data.v === 2 && Array.isArray(data.vs) ? data.vs[i] : (i === 0 ? {qi:data.qi, accepted:data.accepted, home:data.home, pos:data.vp} : null);
-      if (s){
-        v.qi = Math.min(s.qi || 0, v.def.quests.length); v.accepted = !!s.accepted;
-        v.home = s.home || findHome(v.def.angle, v.def.maxR);
-        if (s.pos) v.pos.set(s.pos[0], s.pos[1], s.pos[2]); else spawnAtHome(v);
-      } else { v.home = findHome(v.def.angle, v.def.maxR); spawnAtHome(v); }
+      const s = Array.isArray(data.vs) ? data.vs[i] : (i === 0 ? {qi:data.qi, accepted:data.accepted, home:data.home, pos:data.vp} : null);
+      if (s){ v.qi = Math.min(s.qi || 0, v.def.quests.length); v.accepted = !!s.accepted; }
+      if (keepWorld) v.home = (s && s.home) || findHome(v.def.angle, v.def.maxR);
+      if (keepWorld && s && s.pos) v.pos.set(s.pos[0], s.pos[1], s.pos[2]); else spawnAtHome(v);
     });
+    if (keepWorld && data.p) player.pos.set(data.p[0], data.p[1], data.p[2]);
+    else { const sp = spawnPoint(); player.pos.set(sp.x, sp.y, sp.z); }
     dirty = true; return true;
   } catch(e){ return false; }
 }
@@ -1460,7 +1597,7 @@ function newGame(s){
   for (const v of villagers){ v.qi = 0; v.accepted = false; spawnAtHome(v); }
   while (bugs.length) removeBug(0);
   if (fishing) endFishing();
-  player.pos.set(W/2+.5, topY(W/2, D/2)+.1, D/2+.5); player.vel.set(0,0,0);
+  const sp = spawnPoint(); player.pos.set(sp.x, sp.y, sp.z); player.vel.set(0,0,0);
   cam.yaw = .6; cam.pitch = .55; cam.dist = 9;
   rebuild(); renderHotbar(); renderQuests(); save();
 }
@@ -1472,6 +1609,7 @@ setInterval(save, 15000);
 const C_DAY = new THREE.Color(0xbfe7ff), C_NIGHT = new THREE.Color(0x26335e), C_DUSK = new THREE.Color(0xffc4a3);
 const W_DAY = new THREE.Color(0x38b6d6), W_NIGHT = new THREE.Color(0x24406b);
 const S_DAY = new THREE.Color(0xfff3dd), S_NIGHT = new THREE.Color(0x9fb4ff);
+const F_DAY = new THREE.Color(0xdff6ff), F_NIGHT = new THREE.Color(0x4f6f96);
 let lastClock = '';
 function updateSky(dt){
   dayT = (dayT + dt/(settings.dayLen*60)) % 1;
@@ -1487,6 +1625,8 @@ function updateSky(dt){
   const ang = (hour-6)/12*Math.PI;
   sun.position.set(W/2 + Math.cos(ang)*50, Math.abs(Math.sin(ang))*50 + 12, D/2 + 18);
   waterMat.color.copy(W_NIGHT).lerp(W_DAY, daylight);
+  riverMat.color.copy(waterMat.color);
+  fallMat.color.copy(F_NIGHT).lerp(F_DAY, daylight);
   starMat.opacity = 1 - THREE.MathUtils.smoothstep(daylight, 0, .5);
   lanternMat.emissiveIntensity = .3 + .9*(1-daylight);
   const hh = Math.floor(hour), mm = Math.floor((hour-hh)*6)*10;
@@ -1514,7 +1654,7 @@ function update(dt){
   mv.set(0,0,0).addScaledVector(fwd, iz).addScaledVector(right, ix);
   const moving = mv.lengthSq() > .01;
   if (fishing && (mv.lengthSq() > .04 || jumpQueued)) endFishing('낚시를 그만뒀어요');
-  const inWater = player.pos.y + .5 < SEA;
+  const inWater = player.pos.y + .5 < surfaceAt(player.pos.x, player.pos.y, player.pos.z);
   const speed = (inWater ? 2.8 : 4.6) * (isDown('run') && !inWater ? 1.6 : 1);
   if (jumpQueued){ if (player.onGround) player.vel.y = 8.2; else if (inWater) player.vel.y = 6; jumpQueued = false; }
   if (isDown('jump') && player.onGround) player.vel.y = 8.2;
@@ -1568,6 +1708,14 @@ function update(dt){
 }
 function ambient(dt){
   water.position.y = SEA + Math.sin(t*1.2)*.03;
+  fallTex.offset.y += dt*1.8; riverTex.offset.y += dt*.35;
+  foam(dt);
+  for (const p of parts){
+    if (p.life <= 0 || running) continue;
+    p.life -= dt; p.v.y -= 14*dt; p.m.position.addScaledVector(p.v, dt);
+    p.m.scale.setScalar(Math.max(.01, p.life/.7));
+    if (p.life <= 0) p.m.visible = false;
+  }
   for (const c of clouds){ c.position.x += dt*.8; if (c.position.x > W/2+90) c.position.x = W/2-90; }
   for (const v of villagers) v.flag.cloth.rotation.y = Math.sin(t*2.2 + v.def.angle)*.25;
 }
@@ -1589,7 +1737,11 @@ function updateVillager(v, dt){
     const dx = v.target.x-v.pos.x, dz = v.target.z-v.pos.z, d = Math.hypot(dx,dz);
     v.target.time -= dt;
     if (d < .2 || v.target.time <= 0){ v.target = null; v.wait = 1.5+Math.random()*3; }
-    else { mx = dx/d*1.3*dt; mz = dz/d*1.3*dt; v.face = Math.atan2(dx, dz); }
+    else {
+      mx = dx/d*1.3*dt; mz = dz/d*1.3*dt; v.face = Math.atan2(dx, dz);
+      const ax = Math.floor(v.pos.x + dx/d*.7), az = Math.floor(v.pos.z + dz/d*.7), ah = topY(ax, az);
+      if (ah <= 5 || isWaterB(get(ax, ah, az))){ v.target = null; v.wait = 1; mx = mz = 0; }
+    }
   }
   const bx = v.pos.x, bz = v.pos.z;
   moveBody(v, mx, mz, dt, VR, VH);
@@ -1616,7 +1768,7 @@ function frame(now){
   else {
     t += dt; cam.yaw += dt*.08;
     const cp = Math.cos(.5);
-    camera.position.set(W/2+Math.sin(cam.yaw)*cp*26, 6+Math.sin(.5)*26, D/2+Math.cos(cam.yaw)*cp*26); camera.lookAt(W/2, 5, D/2);
+    camera.position.set(W/2+Math.sin(cam.yaw)*cp*46, 8+Math.sin(.5)*46, D/2+Math.cos(cam.yaw)*cp*46); camera.lookAt(W/2, 6, D/2);
     for (const v of villagers) updateVillager(v, dt);
     ambient(dt);
   }
@@ -1643,7 +1795,8 @@ $('btnStart').addEventListener('click', () => {
   $('start').hidden = true; running = true;
   camTarget.set(player.pos.x, player.pos.y+1.1, player.pos.z);
   canvas.focus();
-  if (villagers.every(v => v.qi === 0 && !v.accepted)) toast('깃발 옆의 이웃들에게 말을 걸어 보세요');
+  if (worldUpgraded) toast('섬이 넓어지고 산과 폭포가 생겼어요! 가방과 이웃과의 우정은 그대로예요');
+  else if (villagers.every(v => v.qi === 0 && !v.accepted)) toast('깃발 옆의 이웃들에게 말을 걸어 보세요');
   else if (villagers.slice(1).every(v => v.qi === 0 && !v.accepted)) toast('섬에 새 이웃 포근과 보리가 이사 왔어요!');
 });
 if (location.hostname === 'localhost') window.__bi = {player, villagers, cam, bugs, give, talk, startFishing, pull, isWaterAt, camera, THREE, get inv(){ return inv; }, get fishing(){ return fishing; }, setTime(x){ dayT = x; }, get daylight(){ return daylight; }, get settings(){ return settings; }};

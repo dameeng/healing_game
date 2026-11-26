@@ -1,14 +1,33 @@
 <!doctype html>
+<!--
+  ==============================================================
+  블록섬 이야기 (healing_game)
+  --------------------------------------------------------------
+  블록으로 된 작은 섬에서 나무를 캐고, 낚시와 벌레 채집을 하며
+  이웃 동물들(모모·포근·보리)의 부탁을 들어주는 힐링 게임이에요.
+
+  이 파일 하나에 게임 전체가 들어 있어요.
+    1. 맨 위       : 글꼴과 화면 기본 설정
+    2. <style>     : 화면 꾸미기 (CSS)
+    3. HTML 부분   : 버튼, 창(제작·가방·잡화점·설정), 시작 화면
+    4. <script>    : 게임 동작 (JavaScript, 3D 그림은 three.js 사용)
+
+  실행 방법: 이 파일을 더블클릭해서 크롬이나 엣지로 열어요.
+  (3D 도구와 글꼴을 인터넷에서 불러오므로 인터넷 연결이 필요해요)
+  ==============================================================
+-->
 <html lang="ko">
+<!-- 기본 설정: 한글 인코딩, 휴대폰 화면 맞춤, 창 제목 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>블록섬 이야기</title>
+<!-- 글꼴: 구글 폰트의 '주아'(제목용)와 '고운돋움'(본문용) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
 <style>
-/* Layout: full-bleed 3D island, HUD chips float in the corners, talk box rises above the hotbar */
-:root{
+/* 색깔과 글꼴 모음 (밝은 테마). 여기 값을 바꾸면 게임 전체 색이 바뀌어요 */
+:root {
   --sky:#bfe7ff;
   --panel:rgba(255,255,255,.92);
   --panel-solid:#ffffff;
@@ -25,227 +44,973 @@
   --display:'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
   --body:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --sky:#2a3a63; --panel:rgba(28,36,48,.92); --panel-solid:#1c2430; --ink:#eef3f7; --ink-soft:#a9b7c2;
-    --line:rgba(238,243,247,.16); --berry:#ff8fab; --berry-ink:#2a1720; --leaf:#6fd1a4; --slot:#283342; --slot-on:#4a2b39;
-    --scrim:rgba(5,10,20,.5); --shadow:0 6px 22px rgba(0,0,0,.4); color-scheme:dark;
+
+/* 다크 모드: 컴퓨터가 어두운 테마면 자동으로 어두운 색을 써요 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sky:#2a3a63;
+    --panel:rgba(28,36,48,.92);
+    --panel-solid:#1c2430;
+    --ink:#eef3f7;
+    --ink-soft:#a9b7c2;
+    --line:rgba(238,243,247,.16);
+    --berry:#ff8fab;
+    --berry-ink:#2a1720;
+    --leaf:#6fd1a4;
+    --slot:#283342;
+    --slot-on:#4a2b39;
+    --scrim:rgba(5,10,20,.5);
+    --shadow:0 6px 22px rgba(0,0,0,.4);
+    color-scheme:dark;
   }
 }
-:root[data-theme="dark"]{
-  --sky:#2a3a63; --panel:rgba(28,36,48,.92); --panel-solid:#1c2430; --ink:#eef3f7; --ink-soft:#a9b7c2;
-  --line:rgba(238,243,247,.16); --berry:#ff8fab; --berry-ink:#2a1720; --leaf:#6fd1a4; --slot:#283342; --slot-on:#4a2b39;
-  --scrim:rgba(5,10,20,.5); --shadow:0 6px 22px rgba(0,0,0,.4); color-scheme:dark;
+
+/* 다크 테마를 직접 켰을 때 쓰는 색 */
+:root[data-theme="dark"] {
+  --sky:#2a3a63;
+  --panel:rgba(28,36,48,.92);
+  --panel-solid:#1c2430;
+  --ink:#eef3f7;
+  --ink-soft:#a9b7c2;
+  --line:rgba(238,243,247,.16);
+  --berry:#ff8fab;
+  --berry-ink:#2a1720;
+  --leaf:#6fd1a4;
+  --slot:#283342;
+  --slot-on:#4a2b39;
+  --scrim:rgba(5,10,20,.5);
+  --shadow:0 6px 22px rgba(0,0,0,.4);
+  color-scheme:dark;
 }
-[hidden]{display:none!important}
-html,body{height:100%;overflow:hidden}
-body{background:var(--sky);color:var(--ink);font-family:var(--body);margin:0;touch-action:none;--bs:1;
-  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-body.btn-s{--bs:.82} body.btn-l{--bs:1.25}
-#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
-button{font-family:var(--display);color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
-button:focus-visible,input:focus-visible{outline:3px solid var(--berry);outline-offset:2px}
 
-#hud{position:fixed;inset:0;pointer-events:none}
-#hud > *{pointer-events:auto}
-.card{background:var(--panel);border-radius:16px;box-shadow:var(--shadow);backdrop-filter:blur(6px)}
-
-#quest{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));
-  width:min(250px,calc(100vw - 190px));padding:9px 12px 10px;display:grid;gap:6px;word-break:keep-all}
-.q-head{display:flex;justify-content:space-between;align-items:center;border:0;background:none;padding:0;width:100%;
-  font-size:12px;letter-spacing:.06em;color:var(--berry)}
-.q-head span{color:var(--ink-soft);font-size:11px;letter-spacing:0}
-#qList{display:grid;gap:6px}
-#quest.collapsed #qList{display:none}
-.q-row{display:grid;grid-template-columns:1fr auto;column-gap:8px;align-items:baseline}
-.q-row b{font-family:var(--display);font-weight:400;font-size:15px}
-.q-row b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--fc);margin-right:6px;vertical-align:1px}
-.q-row .hearts{font-size:11px;color:var(--berry);letter-spacing:1px}
-.q-row .q-prog{grid-column:1/-1;font-size:12.5px;color:var(--ink-soft);line-height:1.35;font-variant-numeric:tabular-nums}
-.q-row .q-prog.ready{color:var(--leaf);font-weight:bold}
-
-#topright{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));
-  display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:min(330px,calc(100vw - 280px))}
-@media (max-width:620px){ #topright{max-width:150px} }
-.chip{background:var(--panel);border-radius:999px;padding:8px 12px;box-shadow:var(--shadow);font-family:var(--display);
-  font-size:14px;font-variant-numeric:tabular-nums;border:0;line-height:1;white-space:nowrap}
-.chip-btn:hover{transform:translateY(-1px)}
-.chip-btn:active{transform:scale(.96)}
-
-#toasts{position:absolute;top:calc(64px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:grid;gap:6px;justify-items:center;pointer-events:none}
-.toast{background:var(--panel);padding:7px 14px;border-radius:999px;font-family:var(--display);font-size:14px;box-shadow:var(--shadow);
-  animation:toastIn .25s ease-out, toastOut .4s ease-in 2.2s forwards;white-space:nowrap}
-@keyframes toastIn{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
-@keyframes toastOut{to{opacity:0;transform:translateY(-6px)}}
-
-#hotbar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));
-  display:flex;gap:5px;padding:6px;max-width:calc(100vw - 24px);overflow-x:auto;scrollbar-width:none}
-#hotbar::-webkit-scrollbar{display:none}
-.slot{position:relative;flex:0 0 auto;width:48px;height:48px;border-radius:12px;border:2px solid transparent;background:var(--slot);
-  display:grid;place-items:center;padding:0}
-.slot.on{border-color:var(--berry);background:var(--slot-on)}
-.slot.empty .ico{opacity:.28}
-.slot .n{position:absolute;right:4px;bottom:2px;font-size:12px;font-family:var(--display);font-variant-numeric:tabular-nums}
-.slot .k{position:absolute;left:5px;top:2px;font-size:10px;color:var(--ink-soft);font-family:var(--body)}
-.touch .slot .k{display:none}
-
-.ico{display:inline-block;flex:0 0 auto;width:24px;height:24px;border-radius:5px;background:var(--c);box-shadow:inset 0 -5px 0 rgba(0,0,0,.14), inset 0 0 0 1px rgba(0,0,0,.12);position:relative}
-.ico.flower,.ico.fish,.ico.tool{background:none;box-shadow:none}
-.ico.flower::before{content:"";position:absolute;left:5px;top:2px;width:14px;height:14px;border-radius:50%;background:#ff9fb8;box-shadow:0 0 0 3px #ffd36e inset}
-.ico.flower::after{content:"";position:absolute;left:11px;top:15px;width:3px;height:9px;background:#5fae5a;border-radius:2px}
-.ico.lantern{box-shadow:inset 0 0 0 3px #7a5a3a, 0 0 10px rgba(255,210,120,.8)}
-.ico.fish::before{content:"";position:absolute;left:1px;top:7px;width:16px;height:10px;border-radius:50%;background:var(--c);box-shadow:inset -3px 0 0 rgba(0,0,0,.08)}
-.ico.fish::after{content:"";position:absolute;right:1px;top:7px;border-right:8px solid var(--c);border-top:5px solid transparent;border-bottom:5px solid transparent}
-.ico.bug{border-radius:50%;box-shadow:inset 0 0 0 2px rgba(0,0,0,.15), inset 0 -6px 0 rgba(0,0,0,.12)}
-.ico.tool::before{content:"";position:absolute;left:11px;top:2px;width:3px;height:22px;background:#a0714b;border-radius:2px;transform:rotate(32deg)}
-.ico.tool.rod::after{content:"";position:absolute;left:3px;top:15px;width:7px;height:7px;border-radius:50%;background:#ff6b6b;box-shadow:0 0 0 2px #fff}
-.ico.tool.net::after{content:"";position:absolute;left:11px;top:-1px;width:12px;height:12px;border-radius:50%;border:2px solid var(--c);background:rgba(255,255,255,.4)}
-
-#selname{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));
-  font-family:var(--display);font-size:14px;background:var(--panel);padding:5px 12px;border-radius:999px;box-shadow:var(--shadow);
-  transition:opacity .3s;pointer-events:none}
-
-#actions{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(78px + env(safe-area-inset-bottom,0px));
-  display:flex;flex-direction:column;gap:10px;align-items:flex-end}
-body.joy-right #actions{right:auto;left:calc(14px + env(safe-area-inset-left,0px));align-items:flex-start}
-@media (max-height:460px){
-  #actions{flex-direction:row;align-items:flex-end}
-  body.joy-right #actions{flex-direction:row-reverse;align-items:flex-end}
+/* 기본 바탕: 화면 전체 크기, 글꼴, 글자 드래그 선택 막기, 버튼 공통 모양 */
+[hidden] { display:none!important; }
+html,body {
+  height:100%;
+  overflow:hidden;
 }
-.act{border:0;border-radius:999px;background:var(--panel);box-shadow:var(--shadow);font-size:calc(16px*var(--bs));
-  padding:calc(12px*var(--bs)) calc(18px*var(--bs));display:flex;align-items:center;gap:8px;white-space:nowrap}
-.act svg{width:calc(20px*var(--bs));height:calc(20px*var(--bs))}
-#btnTalk{background:var(--berry);color:var(--berry-ink);animation:bob 1.4s ease-in-out infinite}
-@keyframes bob{50%{transform:translateY(-3px)}}
-#btnJump{width:calc(74px*var(--bs));height:calc(74px*var(--bs));justify-content:center;padding:0;font-size:calc(17px*var(--bs));border-radius:50%}
-body:not(.touch) #btnJump{display:none}
-#btnMode.place{background:var(--leaf);color:#fff}
-#btnPull.bite{background:var(--berry);color:var(--berry-ink);animation:shake .14s linear infinite}
-@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
-
-#hint{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));
-  font-size:12px;line-height:1.6;color:var(--ink);background:var(--panel);padding:8px 12px;border-radius:12px;box-shadow:var(--shadow);max-width:240px}
-.touch #hint{display:none}
-@media (max-width:1100px){ body:not(.touch) #hint{display:none} }
-
-#joy{position:fixed;width:116px;height:116px;margin:-58px 0 0 -58px;border-radius:50%;background:rgba(255,255,255,.28);
-  border:2px solid rgba(255,255,255,.6);pointer-events:none}
-#joyKnob{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:var(--shadow)}
-
-#dialog{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));
-  width:min(580px,calc(100vw - 32px));padding:16px 18px 14px;display:grid;gap:10px;z-index:5}
-#dialog .who{display:flex;align-items:center;gap:10px}
-#dialog .who b{font-family:var(--display);font-weight:400;font-size:15px;background:var(--vc,var(--berry));color:#2b3944;padding:4px 12px;border-radius:999px}
-#dialog .who span{color:var(--berry);font-size:13px;letter-spacing:2px}
-#dlgText{font-size:17px;line-height:1.6;min-height:3.2em;margin:0;word-break:keep-all;white-space:pre-line}
-#dlgBtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-.btn{border:0;border-radius:999px;padding:10px 18px;font-size:15px;background:var(--slot)}
-.btn.primary{background:var(--berry);color:var(--berry-ink)}
-.btn:disabled{opacity:.4;cursor:default}
-
-.modal{position:fixed;inset:0;background:var(--scrim);display:grid;place-items:center;z-index:8;
-  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.sheet{background:var(--panel-solid);border-radius:20px;box-shadow:var(--shadow);width:min(420px,100%);max-height:100%;overflow:auto;padding:18px;display:grid;gap:12px;align-content:start;word-break:keep-all}
-.sheet.wide{width:min(540px,100%)}
-.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.sheet h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0}
-.sheet p{margin:0;color:var(--ink-soft);font-size:14px;line-height:1.5}
-.recipe{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--slot)}
-.recipe .name{font-family:var(--display);font-size:16px}
-.recipe .need{font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.recipe .need .short{color:var(--berry)}
-.sheet .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
-
-.set-sec{display:grid;gap:6px}
-.set-sec h3{font-family:var(--display);font-weight:400;font-size:16px;margin:6px 0 2px;color:var(--leaf)}
-.set-note{font-size:12.5px;color:var(--ink-soft);margin:0 0 2px;line-height:1.5}
-.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 8px 7px 12px;border-radius:12px;background:var(--slot);font-size:14px;min-height:44px}
-.set-row > :first-child{min-width:0}
-.set-row small{display:block;color:var(--ink-soft);font-size:12px}
-.keybtn{min-width:96px;border:2px solid var(--line);background:var(--panel-solid);border-radius:10px;padding:6px 10px;font-size:14px}
-.keybtn.wait{border-color:var(--berry);color:var(--berry)}
-.seg{display:inline-flex;flex:0 0 auto;background:var(--panel-solid);border-radius:10px;padding:3px;gap:2px;border:1px solid var(--line)}
-.seg button{border:0;background:none;border-radius:8px;padding:6px 10px;font-size:13px}
-.seg button.on{background:var(--berry);color:var(--berry-ink)}
-.range-wrap{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-.range-wrap output{font-size:13px;font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
-input[type=range]{accent-color:var(--berry);width:120px}
-input[type=checkbox]{accent-color:var(--berry);width:22px;height:22px;flex:0 0 auto;margin:0 4px 0 0}
-
-.coins{font-family:var(--display);font-size:15px;background:var(--slot);padding:6px 12px;border-radius:999px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.coins::before{content:"";display:inline-block;width:12px;height:12px;border-radius:50%;background:#ffcc33;box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);margin-right:6px;vertical-align:-1px}
-.tabs{display:flex;gap:4px;background:var(--slot);padding:4px;border-radius:12px}
-.tab{flex:1;border:0;background:none;border-radius:9px;padding:8px;font-size:15px}
-.tab.on{background:var(--panel-solid);box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.shop-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:9px 10px 9px 12px;border-radius:14px;background:var(--slot)}
-.shop-row .nm{font-family:var(--display);font-size:15px}
-.shop-row .pr{font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.shop-row .tag{display:inline-block;font-size:11px;color:var(--berry);border:1px solid var(--berry);border-radius:999px;padding:0 6px;margin-left:6px;vertical-align:1px}
-.shop-row .acts{display:flex;gap:6px}
-.shop-row .btn{padding:8px 12px;font-size:14px}
-.empty-note{padding:18px;text-align:center;color:var(--ink-soft);background:var(--slot);border-radius:14px;font-size:14px}
-.btn.danger{color:var(--berry)}
-.btn.primary.danger{color:var(--berry-ink)}
-.row.confirm{justify-content:flex-start}
-.row.confirm span{font-size:13.5px;color:var(--ink-soft);flex-basis:100%}
-.bag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.bag-item{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--slot)}
-.bag-item .nm{font-family:var(--display);font-size:15px}
-.bag-item .ct{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.bag-item .ds{grid-column:1/-1;font-size:12px;color:var(--ink-soft);line-height:1.45}
-.bag-item.unknown .ico{filter:grayscale(1) brightness(.7);opacity:.35}
-.dex{font-family:var(--display);font-size:14px;color:var(--berry);font-variant-numeric:tabular-nums}
-
-#start{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:var(--scrim);
-  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-#start .sheet{width:min(470px,100%)}
-#start h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,7vw,42px);margin:0;line-height:1.1;color:var(--ink)}
-#start h1 em{font-style:normal;color:var(--berry)}
-.howto{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px;margin:0}
-.howto dt{font-family:var(--display);color:var(--leaf)}
-.howto dd{margin:0;color:var(--ink)}
-.touch .pc-only{display:none}
-body:not(.touch) .touch-only{display:none}
-#btnStart{font-size:18px;padding:13px 22px}
-
-@media (max-width:560px){
-  #quest{padding:8px 10px}
-  .q-row b{font-size:14px}
-  .slot{width:42px;height:42px}
-  .ico{width:21px;height:21px}
-  #actions{bottom:calc(70px + env(safe-area-inset-bottom,0px))}
-  #dialog{bottom:calc(70px + env(safe-area-inset-bottom,0px))}
-  #dlgText{font-size:15px}
-  #selname{bottom:calc(68px + env(safe-area-inset-bottom,0px))}
-  .set-row{flex-wrap:wrap}
+body {
+  background:var(--sky);
+  color:var(--ink);
+  font-family:var(--body);
+  margin:0;
+  touch-action:none;
+  --bs:1;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
 }
-@media (max-height:420px){
-  .q-row .q-prog{font-size:11.5px}
-  #quest{gap:4px}
-  #qList{gap:3px}
+body.btn-s { --bs:.82; }
+body.btn-l { --bs:1.25; }
+#game {
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  touch-action:none;
+  outline:none;
 }
-@media (prefers-reduced-motion: reduce){
-  #btnTalk,#btnPull.bite,.toast{animation:none}
+button {
+  font-family:var(--display);
+  color:inherit;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+button:focus-visible,input:focus-visible {
+  outline:3px solid var(--berry);
+  outline-offset:2px;
+}
+
+/* HUD: 게임 화면 위에 떠 있는 정보와 버튼 층 */
+#hud {
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+#hud > * { pointer-events:auto; }
+.card {
+  background:var(--panel);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(6px);
+}
+
+/* 왼쪽 위: 이웃의 부탁(퀘스트) 목록 */
+#quest {
+  position:absolute;
+  top:calc(12px + env(safe-area-inset-top,0px));
+  left:calc(12px + env(safe-area-inset-left,0px));
+  width:min(250px,calc(100vw - 190px));
+  padding:9px 12px 10px;
+  display:grid;
+  gap:6px;
+  word-break:keep-all;
+}
+.q-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border:0;
+  background:none;
+  padding:0;
+  width:100%;
+  font-size:12px;
+  letter-spacing:.06em;
+  color:var(--berry);
+}
+.q-head span {
+  color:var(--ink-soft);
+  font-size:11px;
+  letter-spacing:0;
+}
+#qList {
+  display:grid;
+  gap:6px;
+}
+#quest.collapsed #qList { display:none; }
+.q-row {
+  display:grid;
+  grid-template-columns:1fr auto;
+  column-gap:8px;
+  align-items:baseline;
+}
+.q-row b {
+  font-family:var(--display);
+  font-weight:400;
+  font-size:15px;
+}
+.q-row b::before {
+  content:"";
+  display:inline-block;
+  width:8px;
+  height:8px;
+  border-radius:2px;
+  background:var(--fc);
+  margin-right:6px;
+  vertical-align:1px;
+}
+.q-row .hearts {
+  font-size:11px;
+  color:var(--berry);
+  letter-spacing:1px;
+}
+.q-row .q-prog {
+  grid-column:1/-1;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  line-height:1.35;
+  font-variant-numeric:tabular-nums;
+}
+.q-row .q-prog.ready {
+  color:var(--leaf);
+  font-weight:bold;
+}
+
+/* 오른쪽 위: 시계와 가방·제작·설정 버튼 */
+#topright {
+  position:absolute;
+  top:calc(12px + env(safe-area-inset-top,0px));
+  right:calc(12px + env(safe-area-inset-right,0px));
+  display:flex;
+  gap:6px;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  max-width:min(330px,calc(100vw - 280px));
+}
+@media (max-width:620px) {
+  #topright { max-width:150px; }
+}
+.chip {
+  background:var(--panel);
+  border-radius:999px;
+  padding:8px 12px;
+  box-shadow:var(--shadow);
+  font-family:var(--display);
+  font-size:14px;
+  font-variant-numeric:tabular-nums;
+  border:0;
+  line-height:1;
+  white-space:nowrap;
+}
+.chip-btn:hover { transform:translateY(-1px); }
+.chip-btn:active { transform:scale(.96); }
+
+/* 화면 위쪽에 잠깐 나타났다 사라지는 알림 메시지 */
+#toasts {
+  position:absolute;
+  top:calc(64px + env(safe-area-inset-top,0px));
+  left:50%;
+  transform:translateX(-50%);
+  display:grid;
+  gap:6px;
+  justify-items:center;
+  pointer-events:none;
+}
+.toast {
+  background:var(--panel);
+  padding:7px 14px;
+  border-radius:999px;
+  font-family:var(--display);
+  font-size:14px;
+  box-shadow:var(--shadow);
+  animation:toastIn .25s ease-out, toastOut .4s ease-in 2.2s forwards;
+  white-space:nowrap;
+}
+@keyframes toastIn {
+  from {
+    transform:translateY(-8px);
+    opacity:0;
+  }
+  to {
+    transform:none;
+    opacity:1;
+  }
+}
+@keyframes toastOut {
+  to {
+    opacity:0;
+    transform:translateY(-6px);
+  }
+}
+
+/* 아래쪽 가운데: 블록 선택 칸 */
+#hotbar {
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  display:flex;
+  gap:5px;
+  padding:6px;
+  max-width:calc(100vw - 24px);
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+#hotbar::-webkit-scrollbar { display:none; }
+.slot {
+  position:relative;
+  flex:0 0 auto;
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  border:2px solid transparent;
+  background:var(--slot);
+  display:grid;
+  place-items:center;
+  padding:0;
+}
+.slot.on {
+  border-color:var(--berry);
+  background:var(--slot-on);
+}
+.slot.empty .ico { opacity:.28; }
+.slot .n {
+  position:absolute;
+  right:4px;
+  bottom:2px;
+  font-size:12px;
+  font-family:var(--display);
+  font-variant-numeric:tabular-nums;
+}
+.slot .k {
+  position:absolute;
+  left:5px;
+  top:2px;
+  font-size:10px;
+  color:var(--ink-soft);
+  font-family:var(--body);
+}
+.touch .slot .k { display:none; }
+
+/* 아이템 아이콘: 블록·꽃·물고기·벌레·도구 모양을 CSS로 그려요 */
+.ico {
+  display:inline-block;
+  flex:0 0 auto;
+  width:24px;
+  height:24px;
+  border-radius:5px;
+  background:var(--c);
+  box-shadow:inset 0 -5px 0 rgba(0,0,0,.14), inset 0 0 0 1px rgba(0,0,0,.12);
+  position:relative;
+}
+.ico.flower,.ico.fish,.ico.tool {
+  background:none;
+  box-shadow:none;
+}
+.ico.flower::before {
+  content:"";
+  position:absolute;
+  left:5px;
+  top:2px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#ff9fb8;
+  box-shadow:0 0 0 3px #ffd36e inset;
+}
+.ico.flower::after {
+  content:"";
+  position:absolute;
+  left:11px;
+  top:15px;
+  width:3px;
+  height:9px;
+  background:#5fae5a;
+  border-radius:2px;
+}
+.ico.lantern { box-shadow:inset 0 0 0 3px #7a5a3a, 0 0 10px rgba(255,210,120,.8); }
+.ico.fish::before {
+  content:"";
+  position:absolute;
+  left:1px;
+  top:7px;
+  width:16px;
+  height:10px;
+  border-radius:50%;
+  background:var(--c);
+  box-shadow:inset -3px 0 0 rgba(0,0,0,.08);
+}
+.ico.fish::after {
+  content:"";
+  position:absolute;
+  right:1px;
+  top:7px;
+  border-right:8px solid var(--c);
+  border-top:5px solid transparent;
+  border-bottom:5px solid transparent;
+}
+.ico.bug {
+  border-radius:50%;
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.15), inset 0 -6px 0 rgba(0,0,0,.12);
+}
+.ico.tool::before {
+  content:"";
+  position:absolute;
+  left:11px;
+  top:2px;
+  width:3px;
+  height:22px;
+  background:#a0714b;
+  border-radius:2px;
+  transform:rotate(32deg);
+}
+.ico.tool.rod::after {
+  content:"";
+  position:absolute;
+  left:3px;
+  top:15px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#ff6b6b;
+  box-shadow:0 0 0 2px #fff;
+}
+.ico.tool.net::after {
+  content:"";
+  position:absolute;
+  left:11px;
+  top:-1px;
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  border:2px solid var(--c);
+  background:rgba(255,255,255,.4);
+}
+
+/* 고른 블록 이름을 잠깐 보여주는 말풍선 */
+#selname {
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:calc(76px + env(safe-area-inset-bottom,0px));
+  font-family:var(--display);
+  font-size:14px;
+  background:var(--panel);
+  padding:5px 12px;
+  border-radius:999px;
+  box-shadow:var(--shadow);
+  transition:opacity .3s;
+  pointer-events:none;
+}
+
+/* 오른쪽 아래: 대화·잡화점·캐기/놓기·점프 버튼 */
+#actions {
+  position:absolute;
+  right:calc(14px + env(safe-area-inset-right,0px));
+  bottom:calc(78px + env(safe-area-inset-bottom,0px));
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:flex-end;
+}
+body.joy-right #actions {
+  right:auto;
+  left:calc(14px + env(safe-area-inset-left,0px));
+  align-items:flex-start;
+}
+@media (max-height:460px) {
+  #actions {
+    flex-direction:row;
+    align-items:flex-end;
+  }
+  body.joy-right #actions {
+    flex-direction:row-reverse;
+    align-items:flex-end;
+  }
+}
+.act {
+  border:0;
+  border-radius:999px;
+  background:var(--panel);
+  box-shadow:var(--shadow);
+  font-size:calc(16px*var(--bs));
+  padding:calc(12px*var(--bs)) calc(18px*var(--bs));
+  display:flex;
+  align-items:center;
+  gap:8px;
+  white-space:nowrap;
+}
+.act svg {
+  width:calc(20px*var(--bs));
+  height:calc(20px*var(--bs));
+}
+#btnTalk {
+  background:var(--berry);
+  color:var(--berry-ink);
+  animation:bob 1.4s ease-in-out infinite;
+}
+@keyframes bob {
+  50% { transform:translateY(-3px); }
+}
+#btnJump {
+  width:calc(74px*var(--bs));
+  height:calc(74px*var(--bs));
+  justify-content:center;
+  padding:0;
+  font-size:calc(17px*var(--bs));
+  border-radius:50%;
+}
+body:not(.touch) #btnJump { display:none; }
+#btnMode.place {
+  background:var(--leaf);
+  color:#fff;
+}
+#btnPull.bite {
+  background:var(--berry);
+  color:var(--berry-ink);
+  animation:shake .14s linear infinite;
+}
+@keyframes shake {
+  25% { transform:translateX(-3px); }
+  75% { transform:translateX(3px); }
+}
+
+/* 왼쪽 아래: PC 조작 안내 */
+#hint {
+  position:absolute;
+  left:calc(12px + env(safe-area-inset-left,0px));
+  bottom:calc(14px + env(safe-area-inset-bottom,0px));
+  font-size:12px;
+  line-height:1.6;
+  color:var(--ink);
+  background:var(--panel);
+  padding:8px 12px;
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  max-width:240px;
+}
+.touch #hint { display:none; }
+@media (max-width:1100px) {
+  body:not(.touch) #hint { display:none; }
+}
+
+/* 휴대폰용 이동 조이스틱 */
+#joy {
+  position:fixed;
+  width:116px;
+  height:116px;
+  margin:-58px 0 0 -58px;
+  border-radius:50%;
+  background:rgba(255,255,255,.28);
+  border:2px solid rgba(255,255,255,.6);
+  pointer-events:none;
+}
+#joyKnob {
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:50px;
+  height:50px;
+  margin:-25px 0 0 -25px;
+  border-radius:50%;
+  background:rgba(255,255,255,.85);
+  box-shadow:var(--shadow);
+}
+
+/* 이웃과 대화하는 창 */
+#dialog {
+  position:fixed;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:calc(80px + env(safe-area-inset-bottom,0px));
+  width:min(580px,calc(100vw - 32px));
+  padding:16px 18px 14px;
+  display:grid;
+  gap:10px;
+  z-index:5;
+}
+#dialog .who {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+#dialog .who b {
+  font-family:var(--display);
+  font-weight:400;
+  font-size:15px;
+  background:var(--vc,var(--berry));
+  color:#2b3944;
+  padding:4px 12px;
+  border-radius:999px;
+}
+#dialog .who span {
+  color:var(--berry);
+  font-size:13px;
+  letter-spacing:2px;
+}
+#dlgText {
+  font-size:17px;
+  line-height:1.6;
+  min-height:3.2em;
+  margin:0;
+  word-break:keep-all;
+  white-space:pre-line;
+}
+#dlgBtns {
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+
+/* 공통 버튼 모양 */
+.btn {
+  border:0;
+  border-radius:999px;
+  padding:10px 18px;
+  font-size:15px;
+  background:var(--slot);
+}
+.btn.primary {
+  background:var(--berry);
+  color:var(--berry-ink);
+}
+.btn:disabled {
+  opacity:.4;
+  cursor:default;
+}
+
+/* 팝업 창 공통 (제작·가방·잡화점·설정) */
+.modal {
+  position:fixed;
+  inset:0;
+  background:var(--scrim);
+  display:grid;
+  place-items:center;
+  z-index:8;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+}
+.sheet {
+  background:var(--panel-solid);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+  width:min(420px,100%);
+  max-height:100%;
+  overflow:auto;
+  padding:18px;
+  display:grid;
+  gap:12px;
+  align-content:start;
+  word-break:keep-all;
+}
+.sheet.wide { width:min(540px,100%); }
+.sheet-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.sheet h2 {
+  font-family:var(--display);
+  font-weight:400;
+  font-size:22px;
+  margin:0;
+}
+.sheet p {
+  margin:0;
+  color:var(--ink-soft);
+  font-size:14px;
+  line-height:1.5;
+}
+
+/* 제작 창의 만들기 목록 */
+.recipe {
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:12px;
+  align-items:center;
+  padding:10px 12px;
+  border-radius:14px;
+  background:var(--slot);
+}
+.recipe .name {
+  font-family:var(--display);
+  font-size:16px;
+}
+.recipe .need {
+  font-size:13px;
+  color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.recipe .need .short { color:var(--berry); }
+.sheet .row {
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+/* 설정 창 */
+.set-sec {
+  display:grid;
+  gap:6px;
+}
+.set-sec h3 {
+  font-family:var(--display);
+  font-weight:400;
+  font-size:16px;
+  margin:6px 0 2px;
+  color:var(--leaf);
+}
+.set-note {
+  font-size:12.5px;
+  color:var(--ink-soft);
+  margin:0 0 2px;
+  line-height:1.5;
+}
+.set-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:7px 8px 7px 12px;
+  border-radius:12px;
+  background:var(--slot);
+  font-size:14px;
+  min-height:44px;
+}
+.set-row > :first-child { min-width:0; }
+.set-row small {
+  display:block;
+  color:var(--ink-soft);
+  font-size:12px;
+}
+.keybtn {
+  min-width:96px;
+  border:2px solid var(--line);
+  background:var(--panel-solid);
+  border-radius:10px;
+  padding:6px 10px;
+  font-size:14px;
+}
+.keybtn.wait {
+  border-color:var(--berry);
+  color:var(--berry);
+}
+.seg {
+  display:inline-flex;
+  flex:0 0 auto;
+  background:var(--panel-solid);
+  border-radius:10px;
+  padding:3px;
+  gap:2px;
+  border:1px solid var(--line);
+}
+.seg button {
+  border:0;
+  background:none;
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:13px;
+}
+.seg button.on {
+  background:var(--berry);
+  color:var(--berry-ink);
+}
+.range-wrap {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+.range-wrap output {
+  font-size:13px;
+  font-variant-numeric:tabular-nums;
+  min-width:34px;
+  text-align:right;
+}
+input[type=range] {
+  accent-color:var(--berry);
+  width:120px;
+}
+input[type=checkbox] {
+  accent-color:var(--berry);
+  width:22px;
+  height:22px;
+  flex:0 0 auto;
+  margin:0 4px 0 0;
+}
+
+/* 잡화점 창: 코인, 팔기/사기 탭, 물건 목록 */
+.coins {
+  font-family:var(--display);
+  font-size:15px;
+  background:var(--slot);
+  padding:6px 12px;
+  border-radius:999px;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.coins::before {
+  content:"";
+  display:inline-block;
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:#ffcc33;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);
+  margin-right:6px;
+  vertical-align:-1px;
+}
+.tabs {
+  display:flex;
+  gap:4px;
+  background:var(--slot);
+  padding:4px;
+  border-radius:12px;
+}
+.tab {
+  flex:1;
+  border:0;
+  background:none;
+  border-radius:9px;
+  padding:8px;
+  font-size:15px;
+}
+.tab.on {
+  background:var(--panel-solid);
+  box-shadow:0 1px 4px rgba(0,0,0,.08);
+}
+.shop-row {
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:12px;
+  align-items:center;
+  padding:9px 10px 9px 12px;
+  border-radius:14px;
+  background:var(--slot);
+}
+.shop-row .nm {
+  font-family:var(--display);
+  font-size:15px;
+}
+.shop-row .pr {
+  font-size:12.5px;
+  color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.shop-row .tag {
+  display:inline-block;
+  font-size:11px;
+  color:var(--berry);
+  border:1px solid var(--berry);
+  border-radius:999px;
+  padding:0 6px;
+  margin-left:6px;
+  vertical-align:1px;
+}
+.shop-row .acts {
+  display:flex;
+  gap:6px;
+}
+.shop-row .btn {
+  padding:8px 12px;
+  font-size:14px;
+}
+
+/* 빈 목록 안내, 위험 버튼(초기화), 확인 줄 */
+.empty-note {
+  padding:18px;
+  text-align:center;
+  color:var(--ink-soft);
+  background:var(--slot);
+  border-radius:14px;
+  font-size:14px;
+}
+.btn.danger { color:var(--berry); }
+.btn.primary.danger { color:var(--berry-ink); }
+.row.confirm { justify-content:flex-start; }
+.row.confirm span {
+  font-size:13.5px;
+  color:var(--ink-soft);
+  flex-basis:100%;
+}
+
+/* 가방(도감) 창 */
+.bag-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:8px;
+}
+.bag-item {
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:6px 10px;
+  align-items:center;
+  padding:10px 12px;
+  border-radius:14px;
+  background:var(--slot);
+}
+.bag-item .nm {
+  font-family:var(--display);
+  font-size:15px;
+}
+.bag-item .ct {
+  font-size:12px;
+  color:var(--ink-soft);
+  font-variant-numeric:tabular-nums;
+}
+.bag-item .ds {
+  grid-column:1/-1;
+  font-size:12px;
+  color:var(--ink-soft);
+  line-height:1.45;
+}
+.bag-item.unknown .ico {
+  filter:grayscale(1) brightness(.7);
+  opacity:.35;
+}
+.dex {
+  font-family:var(--display);
+  font-size:14px;
+  color:var(--berry);
+  font-variant-numeric:tabular-nums;
+}
+
+/* 시작 화면 */
+#start {
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:grid;
+  place-items:center;
+  background:var(--scrim);
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+}
+#start .sheet { width:min(470px,100%); }
+#start h1 {
+  font-family:var(--display);
+  font-weight:400;
+  font-size:clamp(30px,7vw,42px);
+  margin:0;
+  line-height:1.1;
+  color:var(--ink);
+}
+#start h1 em {
+  font-style:normal;
+  color:var(--berry);
+}
+.howto {
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:6px 12px;
+  font-size:14px;
+  margin:0;
+}
+.howto dt {
+  font-family:var(--display);
+  color:var(--leaf);
+}
+.howto dd {
+  margin:0;
+  color:var(--ink);
+}
+.touch .pc-only { display:none; }
+body:not(.touch) .touch-only { display:none; }
+#btnStart {
+  font-size:18px;
+  padding:13px 22px;
+}
+
+/* 작은 화면(휴대폰 세로)에서는 크기를 조금 줄여요 */
+@media (max-width:560px) {
+  #quest { padding:8px 10px; }
+  .q-row b { font-size:14px; }
+  .slot {
+    width:42px;
+    height:42px;
+  }
+  .ico {
+    width:21px;
+    height:21px;
+  }
+  #actions { bottom:calc(70px + env(safe-area-inset-bottom,0px)); }
+  #dialog { bottom:calc(70px + env(safe-area-inset-bottom,0px)); }
+  #dlgText { font-size:15px; }
+  #selname { bottom:calc(68px + env(safe-area-inset-bottom,0px)); }
+  .set-row { flex-wrap:wrap; }
+}
+
+/* 낮은 화면(휴대폰 가로)에서는 부탁 목록을 촘촘하게 */
+@media (max-height:420px) {
+  .q-row .q-prog { font-size:11.5px; }
+  #quest { gap:4px; }
+  #qList { gap:3px; }
+}
+
+/* '움직임 줄이기' 설정이 켜져 있으면 깜빡이는 애니메이션을 꺼요 */
+@media (prefers-reduced-motion: reduce) {
+  #btnTalk,#btnPull.bite,.toast { animation:none; }
 }
 </style>
 
+<!-- 3D 게임 화면이 그려지는 캔버스 -->
 <canvas id="game" tabindex="0" aria-label="블록섬 게임 화면"></canvas>
 
+<!-- HUD: 게임 화면 위에 떠 있는 정보와 버튼들 -->
 <div id="hud">
+  <!-- 왼쪽 위: 이웃의 부탁 목록 (JS가 내용을 채워요) -->
   <div id="quest" class="card" aria-live="polite">
     <button class="q-head" id="qToggle" aria-expanded="true">이웃의 부탁 <span id="qToggleTxt">접기</span></button>
     <div id="qList"></div>
   </div>
+  <!-- 오른쪽 위: 시계와 메뉴 버튼 -->
   <div id="topright">
     <div class="chip" id="clock">06:00 · 아침</div>
     <button class="chip chip-btn" id="btnBag">가방</button>
     <button class="chip chip-btn" id="btnCraft">제작</button>
     <button class="chip chip-btn" id="btnSettings">설정</button>
   </div>
+  <!-- 알림 메시지 / PC 조작 안내 / 고른 블록 이름 / 블록 선택 칸 -->
   <div id="toasts"></div>
   <div id="hint"></div>
   <div id="selname" style="opacity:0"></div>
   <div id="hotbar" role="toolbar" aria-label="블록"></div>
+  <!-- 오른쪽 아래 행동 버튼 (상황에 따라 보이거나 숨어요) -->
   <div id="actions">
     <button class="act" id="btnPull" hidden>기다리는 중…</button>
     <button class="act" id="btnTalk" hidden>대화</button>
@@ -254,14 +1019,17 @@ body:not(.touch) .touch-only{display:none}
     <button class="act" id="btnJump">점프</button>
   </div>
 </div>
+<!-- 휴대폰용 이동 조이스틱 -->
 <div id="joy" hidden><div id="joyKnob"></div></div>
 
+<!-- 이웃과의 대화창 -->
 <div id="dialog" class="card" hidden role="dialog" aria-label="이웃과의 대화">
   <div class="who"><b id="dlgName">모모</b><span id="dlgHearts"></span></div>
   <p id="dlgText"></p>
   <div id="dlgBtns"></div>
 </div>
 
+<!-- 제작 창 -->
 <div id="craft" class="modal" hidden>
   <div class="sheet" role="dialog" aria-labelledby="craftTitle">
     <h2 id="craftTitle">제작</h2>
@@ -271,6 +1039,7 @@ body:not(.touch) .touch-only{display:none}
   </div>
 </div>
 
+<!-- 가방(도감) 창 -->
 <div id="bag" class="modal" hidden>
   <div class="sheet wide" role="dialog" aria-labelledby="bagTitle">
     <div class="sheet-head"><h2 id="bagTitle">가방</h2><span class="dex" id="dexCount"></span></div>
@@ -280,6 +1049,7 @@ body:not(.touch) .touch-only{display:none}
   </div>
 </div>
 
+<!-- 잡화점 창 (팔기 / 사기) -->
 <div id="shop" class="modal" hidden>
   <div class="sheet wide" role="dialog" aria-labelledby="shopTitle">
     <div class="sheet-head"><h2 id="shopTitle">섬 잡화점</h2><span class="coins" id="shopCoins">0코인</span></div>
@@ -293,6 +1063,7 @@ body:not(.touch) .touch-only{display:none}
   </div>
 </div>
 
+<!-- 설정 창 (조작 키, 감도, 초기화 등) -->
 <div id="settings" class="modal" hidden>
   <div class="sheet wide" role="dialog" aria-labelledby="setTitle">
     <h2 id="setTitle">설정</h2>
@@ -320,6 +1091,7 @@ body:not(.touch) .touch-only{display:none}
   </div>
 </div>
 
+<!-- 시작 화면 (게임 설명과 '섬으로 들어가기' 버튼) -->
 <div id="start">
   <div class="sheet">
     <h1>블록섬 <em>이야기</em></h1>
@@ -336,30 +1108,51 @@ body:not(.touch) .touch-only{display:none}
   </div>
 </div>
 
+<!-- three.js: 3D 그래픽을 그려 주는 도구 (인터넷에서 불러와요) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- 여기부터 게임 코드 (JavaScript) -->
 <script>
+
+// 게임 전체를 함수 하나로 감싸서, 변수가 바깥과 섞이지 않게 해요
 (function(){
 'use strict';
+
+// $('아이디'): 화면의 요소를 아이디로 찾는 짧은 도우미
 const $ = id => document.getElementById(id);
+
+// 손가락 터치 기기(휴대폰·태블릿)면 터치용 화면으로 바꿔요
 const isCoarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
 if (isCoarse) document.body.classList.add('touch');
 
+// 한국어 조사 고르기: 받침이 있으면 b(예: '을'), 없으면 a(예: '를')
 function josa(word, a, b){
   const c = word.charCodeAt(word.length-1);
   const has = c >= 0xAC00 && c <= 0xD7A3 && (c-0xAC00) % 28 !== 0;
   return word + (has ? b : a);
 }
+
+// 배열에서 하나를 무작위로 골라요
 const pickOne = arr => arr[Math.floor(Math.random()*arr.length)];
 
-/* ---------- settings ---------- */
+// ============================================================
+// 설정 (조작 키·감도 등) — 브라우저에 저장돼요
+// ============================================================
 const SET_KEY = 'blockisland-settings-v1';
+
+// 바꿀 수 있는 동작 목록 [이름, 화면에 보일 설명]
 const ACTIONS = [
   ['forward','앞으로'], ['back','뒤로'], ['left','왼쪽으로'], ['right','오른쪽으로'],
   ['jump','점프'], ['run','달리기 (누르고 있기)'], ['talk','대화 · 잡화점 · 낚싯대 당기기'],
   ['mode','캐기/놓기 바꾸기'], ['craft','제작 열기'], ['bag','가방 열기'],
 ];
+
+// 기본 조작 키
 const DEFAULT_KEYS = {forward:'KeyW', back:'KeyS', left:'KeyA', right:'KeyD', jump:'Space', run:'ShiftLeft', talk:'KeyE', mode:'KeyQ', craft:'KeyC', bag:'KeyB'};
+
+// 설정 기본값 (감도, 마우스 반전, 조이스틱 위치, 버튼 크기, 하루 길이 등)
 const DEFAULT_SETTINGS = {keys:Object.assign({}, DEFAULT_KEYS), sens:1, invertY:false, swapMouse:false, joySide:'left', btnSize:'m', dayLen:8, showHint:true, questCollapsed:false};
+
+// 저장된 설정 불러오기 (없으면 기본값)
 function loadSettings(){
   let s = {};
   try { s = JSON.parse(localStorage.getItem(SET_KEY) || '{}') || {}; } catch(e){}
@@ -368,7 +1161,11 @@ function loadSettings(){
   return out;
 }
 let settings = loadSettings();
+
+// 설정을 브라우저(localStorage)에 저장
 function saveSettings(){ try { localStorage.setItem(SET_KEY, JSON.stringify(settings)); } catch(e){} }
+
+// 키 코드(예: KeyW)를 읽기 쉬운 글자(W)로 바꿔요
 function keyLabel(code){
   if (!code) return '없음';
   const map = {Space:'스페이스', ShiftLeft:'왼쪽 Shift', ShiftRight:'오른쪽 Shift', ControlLeft:'왼쪽 Ctrl', ControlRight:'오른쪽 Ctrl',
@@ -381,12 +1178,23 @@ function keyLabel(code){
   if (code.startsWith('Numpad')) return '숫자패드 ' + code.slice(6);
   return code;
 }
+
+// 동작 이름 → 화면에 보일 설명
 const actionLabel = a => (ACTIONS.find(x => x[0] === a) || [a, a])[1];
 
-/* ---------- world constants ---------- */
+// ============================================================
+// 세계 상수: 섬 크기, 블록 종류, 아이템 정보, 잡화점, 제작법
+// ============================================================
+// 섬 크기(가로 W·세로 D·높이 H), 바다 높이, 손이 닿는 거리, 저장 이름
 const W = 64, D = 64, H = 24, SEA = 4.6, REACH = 6.5, SAVE_KEY = 'blockisland-v1';
+
+// 블록 종류 번호 (0은 빈 공간)
 const AIR=0, GRASS=1, DIRT=2, SAND=3, STONE=4, WOOD=5, LEAF=6, PLANK=7, BRICK=8, LANTERN=9, FLOWER=10, WATER=11, FALL=12, GLASS=13, BERRY=14;
+
+// 도구·물고기·곤충 번호
 const ROD=20, NET=21, SARDINE=30, BREAM=31, GOLDFISH=32, BOOT=33, MINNOW=34, TROUT=35, BUTTERFLY=40, LADYBUG=41, FIREFLY=42;
+
+// 블록·아이템 정보: 이름, 색, 캐면 나오는 것(drop), 설명(desc)
 const INFO = {
   [GRASS]:  {name:'잔디',   c:'#9fdc8a', drop:DIRT},
   [DIRT]:   {name:'흙',     c:'#c9a36f', drop:DIRT},
@@ -414,21 +1222,30 @@ const INFO = {
   [LADYBUG]:  {name:'무당벌레',   c:'#ff6b6b', kind:'bug', desc:'낮에 풀밭을 천천히 기어다니는 빨간 점박이.'},
   [FIREFLY]:  {name:'반딧불이',   c:'#d8ff7a', kind:'bug', desc:'밤에만 나타나 반짝반짝 빛나요.'},
 };
+
+// 아래쪽 블록 선택 칸의 순서와 단축키
 const ORDER = [WOOD, PLANK, STONE, BRICK, DIRT, SAND, LEAF, LANTERN, FLOWER, GLASS, BERRY];
 const SLOT_KEYS = ['1','2','3','4','5','6','7','8','9','0','-'];
-// island shop: what it pays per item, and what it sells
+// 잡화점: SELL = 팔 때 받는 코인, BUY = 살 수 있는 물건과 가격
 const SELL = {[SARDINE]:10, [BREAM]:30, [GOLDFISH]:150, [MINNOW]:8, [TROUT]:40, [BOOT]:1,
   [BUTTERFLY]:15, [LADYBUG]:20, [FIREFLY]:45,
   [WOOD]:2, [PLANK]:3, [STONE]:1, [BRICK]:4, [DIRT]:1, [SAND]:1, [LEAF]:1, [FLOWER]:3, [LANTERN]:8, [GLASS]:5, [BERRY]:5};
 const BUY = [[PLANK,5], [BRICK,8], [LANTERN,15], [FLOWER,6], [SAND,2], [GLASS,10], [BERRY,10]];
+
+// 도감에 기록되는 물고기·곤충
 const DEX = [SARDINE, BREAM, GOLDFISH, BOOT, MINNOW, TROUT, BUTTERFLY, LADYBUG, FIREFLY];
+
+// 제작 방법: need(재료)로 out(결과물)을 n개 만들어요
 const RECIPES = [
   {out:PLANK, n:2, need:{[WOOD]:1}},
   {out:BRICK, n:1, need:{[STONE]:2}},
   {out:LANTERN, n:1, need:{[PLANK]:1, [STONE]:1}},
 ];
 
-/* ---------- villagers ---------- */
+// ============================================================
+// 이웃 동물들: 대사와 부탁(퀘스트)
+// ============================================================
+// 모모(토끼)·포근(곰)·보리(고양이). quests의 부탁을 순서대로 하나씩 들어줘요
 const VILLAGERS = [
   {id:'momo', name:'모모', kind:'bunny', color:0xff7f9e, css:'#ff9fb8', where:'분홍 깃발', angle:.35, maxR:9,
    chat:['오늘 바람이 기분 좋다~', '판자 집은 비 오는 날 소리가 좋을 것 같아.', '포근이는 하루 종일 바다만 보고 있더라.', '보리가 또 나비를 쫓아다니고 있었어!'],
@@ -479,13 +1296,18 @@ const VILLAGERS = [
   ]},
 ];
 
-/* ---------- state ---------- */
+// ============================================================
+// 게임 상태: 지금 섬의 모습, 가방, 코인, 시간
+// ============================================================
+// world: 섬의 모든 블록을 담는 큰 배열
 let world = new Uint8Array(W*H*D);
 let seed = 1;
 let inv = {}, seen = {}, coins = 0;
 let shopPos = {x: 36, z: 28};
 let dayT = 0.05, daylight = 1;
 let dirty = true;
+
+// 블록 좌표 도우미: 위치 계산, 범위 확인, 읽기(get), 쓰기(put), 종류 검사
 const idx = (x,y,z) => x + z*W + y*W*D;
 const inB = (x,y,z) => x>=0 && x<W && z>=0 && z<D && y>=0 && y<H;
 const get = (x,y,z) => inB(x,y,z) ? world[idx(x,y,z)] : AIR;
@@ -494,16 +1316,27 @@ const isWaterB = b => b === WATER || b === FALL;
 const opaque = b => b !== AIR && b !== FLOWER && b !== WATER && b !== FALL && b !== GLASS;
 const solid = b => opaque(b) || b === GLASS;
 
-/* ---------- generation ---------- */
+// ============================================================
+// 섬 만들기: 지형, 산, 강, 폭포, 나무, 돌, 꽃
+// ============================================================
+// 같은 숫자(seed)를 넣으면 항상 같은 난수가 나와요 → 같은 섬을 다시 만들 수 있어요
 function rng(s){ return function(){ s|=0; s=s+0x6D2B79F5|0; let t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+// 좌표로 만드는 난수 (지형의 울퉁불퉁함에 사용)
 function hash2(a,b,s){ let h=Math.imul(a,374761393)+Math.imul(b,668265263)+Math.imul(s,1442695041); h=Math.imul(h^(h>>>13),1274126177); h^=h>>>16; return (h>>>0)/4294967296; }
+
+// 부드럽게 이어지는 노이즈 → 자연스러운 언덕 모양
 function vnoise(x,z,s){
   const xi=Math.floor(x), zi=Math.floor(z), xf=x-xi, zf=z-zi;
   const u=xf*xf*(3-2*xf), v=zf*zf*(3-2*zf);
   const a=hash2(xi,zi,s), b=hash2(xi+1,zi,s), c=hash2(xi,zi+1,s), d=hash2(xi+1,zi+1,s);
   return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
 }
+
+// (x,z) 위치에서 맨 위 블록 바로 위의 높이
 function topY(x,z){ for (let y=H-1; y>=0; y--) if (solid(get(x,y,z))) return y+1; return 0; }
+
+// 이웃 집(깃발) 자리 찾기: 정해진 방향으로 가며 평평한 땅을 골라요
 function findHome(angle, maxR){
   let best = null;
   for (let r=3; r<=maxR; r++){
@@ -515,6 +1348,7 @@ function findHome(angle, maxR){
   return best || {x:Math.floor(W/2 + Math.cos(angle)*3), z:Math.floor(D/2 + Math.sin(angle)*3)};
 }
 
+// 플레이어가 처음 서는 자리 (섬 가운데 근처 잔디)
 function spawnPoint(){
   const cx = W>>1, cz = D>>1;
   for (let r=0; r<24; r++) for (let a=0; a<16; a++){
@@ -525,11 +1359,15 @@ function spawnPoint(){
   }
   return {x:cx+.5, y:topY(cx,cz)+.1, z:cz+.5};
 }
-// mountain north-west of center; its south face steps down in two cliffs that the river pours over
+// 산: 섬 가운데의 북서쪽. 남쪽 면이 두 단 절벽이라 강물이 폭포가 되어 떨어져요
 const MT = {x: Math.floor(W/2)-6, z: Math.floor(D/2)-10, R: 15};
+
+// 블록 바로 쓰기 / 위쪽 비우기 / 강바닥 높이 찾기
 function setC(x,y,z,v){ if (inB(x,y,z)) world[idx(x,y,z)] = v; }
 function clearAbove(X,Z,level){ for (let y=level+1; y<H; y++) if (inB(X,y,Z) && get(X,y,Z) !== AIR) setC(X,y,Z,AIR); }
 function bedTop(x,z){ for (let y=H-1; y>=0; y--){ const b = get(x,y,z); if (solid(b) || b === WATER) return y+1; } return 0; }
+
+// 산꼭대기에서 남쪽으로 강을 파요. 높이가 뚝 떨어지는 곳은 폭포(FALL)가 돼요
 function carveRiver(R){
   let x = MT.x, z = MT.z;
   let level = Math.min(topY(x,z), topY(x+1,z)) - 1;
@@ -562,6 +1400,8 @@ function carveRiver(R){
     if (hmin <= 5) break;
   }
 }
+
+// 새 섬 만들기: 지형 → 강 → 이웃 집·잡화점 자리 → 나무 30그루 → 돌 → 꽃
 function generate(s){
   seed = s;
   world = new Uint8Array(W*H*D);
@@ -625,30 +1465,41 @@ function generate(s){
   dirty = true;
 }
 
-/* ---------- three.js setup ---------- */
+// ============================================================
+// 3D 화면 준비 (three.js): 카메라, 빛, 블록 무늬, 물, 하늘
+// ============================================================
 const canvas = $('game');
+
+// 렌더러: 3D 장면을 캔버스에 그려 줘요
 const renderer = new THREE.WebGLRenderer({canvas, antialias: !isCoarse});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, isCoarse ? 1.5 : 2));
 const scene = new THREE.Scene();
 const skyColor = new THREE.Color(0xbfe7ff);
 scene.background = skyColor;
 scene.fog = new THREE.Fog(skyColor, 60, 170);
+
+// 카메라와 빛 (하늘빛 + 햇빛)
 const camera = new THREE.PerspectiveCamera(55, 1, .1, 400);
 const hemi = new THREE.HemisphereLight(0xffffff, 0x9bb7a0, .65); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff3dd, .8); scene.add(sun); scene.add(sun.target);
 sun.target.position.set(W/2, 0, D/2);
 
+// 16x16 작은 그림을 코드로 그려서 블록 무늬(텍스처)로 만들어요
 function makeTex(draw, s){
   const c = document.createElement('canvas'); c.width = c.height = 16;
   const g = c.getContext('2d'); draw(g, rng(s||1));
   const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
   return t;
 }
+
+// 무늬 도우미: 점 찍기, 테두리 그리기
 function speckle(g, R, base, amt, n){
   g.fillStyle = base; g.fillRect(0,0,16,16);
   for (let i=0; i<(n||40); i++){ const v = R()<.5?0:255; g.fillStyle = `rgba(${v},${v},${v},${amt*R()})`; g.fillRect(Math.floor(R()*16), Math.floor(R()*16), 1+Math.floor(R()*2), 1); }
 }
 function border(g, a){ g.strokeStyle = `rgba(0,0,0,${a||.09})`; g.lineWidth = 1; g.strokeRect(.5,.5,15,15); }
+
+// 블록별 무늬 (잔디, 흙, 모래, 돌, 나무, 잎, 판자, 벽돌, 유리, 딸기, 등불)
 const T = {
   grassTop: makeTex((g,R)=>{ speckle(g,R,'#9fdc8a',.16,50); border(g); }, 2),
   grassSide: makeTex((g,R)=>{ speckle(g,R,'#c9a36f',.16); g.fillStyle='#9fdc8a'; g.fillRect(0,0,16,4); for(let x=0;x<16;x++) if(R()<.5) g.fillRect(x,4,1,1+Math.floor(R()*2)); border(g); }, 3),
@@ -664,6 +1515,8 @@ const T = {
   berry: makeTex((g)=>{ g.fillStyle='#ffa3bd'; g.fillRect(0,0,16,16); g.fillStyle='#fff2d6'; for (const [x,y] of [[3,3],[10,2],[6,8],[12,10],[2,12],[9,13]]) g.fillRect(x,y,2,2); g.strokeStyle='rgba(160,60,90,.25)'; g.strokeRect(.5,.5,15,15); }, 14),
   lantern: makeTex((g)=>{ g.fillStyle='#ffe9a3'; g.fillRect(0,0,16,16); g.fillStyle='#fff7d6'; g.fillRect(5,5,6,6); g.strokeStyle='#7a5a3a'; g.lineWidth=2; g.strokeRect(1,1,14,14); g.fillStyle='#7a5a3a'; g.fillRect(7,0,2,16); g.fillRect(0,7,16,2); }, 12),
 };
+
+// 블록 재질 (무늬 + 빛 반응). 등불은 스스로 빛나요
 const lam = map => new THREE.MeshLambertMaterial({map});
 const lanternMat = new THREE.MeshLambertMaterial({map:T.lantern, emissive:0xffd27a, emissiveMap:T.lantern, emissiveIntensity:.3});
 const MATS = {
@@ -674,6 +1527,8 @@ const MATS = {
   [GLASS]: new THREE.MeshLambertMaterial({map:T.glass, transparent:true, opacity:.9, depthWrite:false}),
   [BERRY]: lam(T.berry),
 };
+
+// 블록 종류마다 '인스턴스 메시' 하나로 수천 개 블록을 한꺼번에 그려요 (빠름)
 const boxGeo = new THREE.BoxGeometry(1,1,1);
 const CAP = 12000;
 const blockMeshes = {};
@@ -683,6 +1538,8 @@ for (const k of Object.keys(MATS)){
   m.count = 0; m.frustumCulled = false; m.userData = {type:+k, cells:[]};
   scene.add(m); blockMeshes[k] = m; pickables.push(m);
 }
+
+// 꽃: 줄기와 꽃송이를 따로 그려요
 const FCAP = 1500;
 const stemMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.08,.42,.08), new THREE.MeshLambertMaterial({color:0x5fae5a}), FCAP);
 const headMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.32,.2,.32), new THREE.MeshLambertMaterial({color:0xffffff}), FCAP);
@@ -692,6 +1549,8 @@ const PETALS = [0xff9fb8, 0xffd36e, 0xc7a6ff, 0xffffff, 0xff8a7a].map(c => new T
 let flowerCells = [];
 
 // river surfaces and falling water
+
+// 물 무늬 그리기 (폭포는 세로 줄무늬, 강은 잔물결)
 function waterTex(kind){
   const c = document.createElement('canvas'); c.width = 16; c.height = 32;
   const g = c.getContext('2d'), R = rng(kind === 'fall' ? 31 : 32);
@@ -717,6 +1576,7 @@ const fallMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.98,1,.98), fallM
 for (const m of [riverMesh, fallMesh]){ m.count = 0; m.frustumCulled = false; m.renderOrder = 2; m.userData = {water:true, cells:[]}; scene.add(m); }
 let fallBases = [];
 
+// 블록에 공기와 닿은 면이 있는지 확인 (완전히 묻힌 블록은 그리지 않아요)
 const M4 = new THREE.Matrix4();
 const NB = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
 function exposed(x,y,z){
@@ -728,6 +1588,8 @@ function exposed(x,y,z){
   }
   return false;
 }
+
+// 섬 모양이 바뀌면 3D 화면을 다시 만들어요 (블록, 꽃, 강, 폭포, 깃발 위치)
 function rebuild(){
   const lists = {}; for (const k in blockMeshes) lists[k] = [];
   const flowers = [], riverCells = [], fallCells = [], bases = [];
@@ -766,11 +1628,14 @@ function rebuild(){
   placeFlags();
 }
 
+// 바다와 바다 밑바닥
 const waterMat = new THREE.MeshLambertMaterial({color:0x38b6d6, transparent:true, opacity:.84});
 const water = new THREE.Mesh(new THREE.PlaneGeometry(360,360), waterMat);
 water.rotation.x = -Math.PI/2; water.position.set(W/2, SEA, D/2); scene.add(water);
 const seaFloor = new THREE.Mesh(new THREE.PlaneGeometry(360,360), new THREE.MeshLambertMaterial({color:0x9fb08a}));
 seaFloor.rotation.x = -Math.PI/2; seaFloor.position.set(W/2, .98, D/2); scene.add(seaFloor);
+
+// 하늘에 떠다니는 구름 10개
 const cloudMat = new THREE.MeshLambertMaterial({color:0xffffff, transparent:true, opacity:.92});
 const clouds = [];
 { const R = rng(99);
@@ -781,6 +1646,8 @@ const clouds = [];
     g.position.set(W/2+R()*180-90, 30+R()*8, D/2+R()*180-90); scene.add(g); clouds.push(g);
   }
 }
+
+// 밤하늘 별 (낮에는 투명)
 const starGeo = new THREE.BufferGeometry();
 { const R = rng(7), pts = [];
   for (let i=0; i<260; i++){ const th = R()*Math.PI*2, ph = R()*Math.PI*.45; pts.push(W/2+Math.cos(th)*Math.cos(ph)*150, Math.sin(ph)*150+10, D/2+Math.sin(th)*Math.cos(ph)*150); }
@@ -788,14 +1655,20 @@ const starGeo = new THREE.BufferGeometry();
 const starMat = new THREE.PointsMaterial({color:0xffffff, size:1.6, sizeAttenuation:false, transparent:true, opacity:0, fog:false});
 scene.add(new THREE.Points(starGeo, starMat));
 
+// 마우스가 가리키는 블록에 그려지는 테두리
 const hl = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02,1.02,1.02)), new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:.9}));
 hl.visible = false; scene.add(hl);
 
-/* ---------- characters ---------- */
+// ============================================================
+// 캐릭터: 플레이어, 이웃 동물, 깃발, 잡화점 가판대
+// ============================================================
+// 상자 하나를 만들어 붙이는 도우미 (캐릭터는 모두 상자로 만들어요)
 function box(w,h,d,color,x,y,z,parent){
   const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshLambertMaterial({color}));
   m.position.set(x,y,z); parent.add(m); return m;
 }
+
+// 플레이어 모델: 다리, 몸, 팔, 머리, 낚싯대
 function makePlayer(){
   const g = new THREE.Group();
   const legL = box(.2,.34,.22,0x4f6b8f,-.12,.17,0,g), legR = box(.2,.34,.22,0x4f6b8f,.12,.17,0,g);
@@ -812,11 +1685,15 @@ function makePlayer(){
   scene.add(g);
   return {g, legL, legR, armL, armR, head, rod};
 }
+
+// 이웃 동물 색깔
 const VCOL = {
   bunny:{body:0xfff3e6, leg:0xf3e3cf, accent:0xffb3c6, belly:0xffc7d6},
   bear: {body:0xc99a6e, leg:0xa97c55, accent:0x8a5d3b, belly:0xf0d2ae},
   cat:  {body:0xffd49a, leg:0xf2b874, accent:0xf0a25a, belly:0xfff1dc},
 };
+
+// 이웃 모델: 토끼(긴 귀), 곰(둥근 귀), 고양이(뾰족 귀·꼬리). 머리 위 '!'는 새 부탁 표시
 function makeVillagerModel(kind){
   const C = VCOL[kind];
   const g = new THREE.Group();
@@ -852,6 +1729,8 @@ function makeVillagerModel(kind){
   scene.add(g);
   return {g, legL, legR, head, earL, earR, bang};
 }
+
+// 이웃 집 자리에 꽂는 깃발
 function makeFlag(color){
   const f = new THREE.Group();
   box(.07,1.7,.07,0xf7f3ee,0,.85,0,f);
@@ -859,6 +1738,8 @@ function makeFlag(color){
   scene.add(f);
   return {g:f, cloth};
 }
+
+// 플레이어와 이웃 만들기. pos=위치, vel=속도, qi=몇 번째 부탁인지
 const P = makePlayer();
 const player = {pos:new THREE.Vector3(W/2+.5, 10, D/2+.5), vel:new THREE.Vector3(), onGround:false, face:0, walk:0};
 const villagers = VILLAGERS.map(def => {
@@ -867,7 +1748,11 @@ const villagers = VILLAGERS.map(def => {
   v.m.g.traverse(o => { o.userData.villagerRef = v; });
   return v;
 });
+
+// 충돌 크기: 플레이어(PR 반지름, PH 키), 이웃(VR, VH)
 const PR = .3, PH = 1.45, VR = .28, VH = 1.4;
+
+// 잡화점 가판대 (줄무늬 차양과 '잡화점' 간판)
 function makeStall(){
   const g = new THREE.Group();
   box(1.8,.9,.7,0xe8bb82,0,.45,0,g);
@@ -887,15 +1772,22 @@ function makeStall(){
   return {g, sign, canvas:c};
 }
 const stall = makeStall();
+
+// 깃발과 잡화점을 땅 위에 세워요
 function placeFlags(){
   for (const v of villagers) v.flag.g.position.set(v.home.x+.5, topY(v.home.x, v.home.z), v.home.z+.5);
   stall.g.position.set(shopPos.x+.5, topY(shopPos.x, shopPos.z), shopPos.z+.5);
   stall.g.rotation.y = Math.atan2(W/2 - shopPos.x, D/2 - shopPos.z);
 }
+
+// 잡화점 가까이 있는지 / 이웃을 집 앞에 다시 세우기
 function nearShop(){ return Math.hypot(shopPos.x+.5-player.pos.x, shopPos.z+.5-player.pos.z) < 3.2 && Math.abs(stall.g.position.y - player.pos.y) < 2.5; }
 function spawnAtHome(v){ v.pos.set(v.home.x+1.5, topY(v.home.x+1, v.home.z+1)+.1, v.home.z+1.5); v.vel.set(0,0,0); v.target = null; }
 
-/* ---------- physics ---------- */
+// ============================================================
+// 물리: 중력, 충돌, 물에서 뜨기
+// ============================================================
+// 그 자리가 막혀 있는지 (섬 밖은 벽으로 취급)
 function solidAt(x,y,z){
   const X=Math.floor(x), Y=Math.floor(y), Z=Math.floor(z);
   if (X<0||X>=W||Z<0||Z>=D) return true;
@@ -903,6 +1795,8 @@ function solidAt(x,y,z){
   if (Y>=H) return false;
   return solid(world[idx(X,Y,Z)]);
 }
+
+// 몸이 블록과 겹치는지
 function collides(px,py,pz,r,h){
   const e = 1e-4;
   for (let x=Math.floor(px-r); x<=Math.floor(px+r-e); x++)
@@ -911,12 +1805,16 @@ function collides(px,py,pz,r,h){
         if (solidAt(x+.5,y+.5,z+.5)) return true;
   return false;
 }
+
+// 그 자리의 물 표면 높이 (바다 또는 강)
 function surfaceAt(px, py, pz){
   let s = SEA;
   const X = Math.floor(px), Z = Math.floor(pz);
   for (let Y=Math.floor(py)-1; Y<=Math.floor(py)+2; Y++) if (get(X,Y,Z) === WATER && get(X,Y+1,Z) !== WATER) s = Math.max(s, Y+.88);
   return s;
 }
+
+// 몸 움직이기: 옆 이동(한 칸 턱은 자동으로 올라감) → 중력 → 물에서 뜨기 → 착지
 function moveBody(b, dx, dz, dt, r, h){
   for (const axis of ['x','z']){
     const d = axis==='x' ? dx : dz; if (!d) continue;
@@ -942,21 +1840,31 @@ function moveBody(b, dx, dz, dt, r, h){
   if (b.pos.y < -4) { b.pos.y = topY(Math.floor(b.pos.x), Math.floor(b.pos.z)) + .1; b.vel.y = 0; }
 }
 
-/* ---------- inventory & UI ---------- */
+// ============================================================
+// 가방과 화면 UI: 아이템 주고받기, 알림, 블록 선택 칸, 부탁 목록
+// ============================================================
+// count: 가진 개수 / give: 받기 / take: 빼기
 const count = t => inv[t] || 0;
 function markSeen(t){ seen[t] = 1; }
 function give(t, n){ inv[t] = count(t) + n; if (n > 0) markSeen(t); renderHotbar(); renderQuests(); }
 function take(t, n){ inv[t] = Math.max(0, count(t) - n); renderHotbar(); renderQuests(); }
+
+// 지금 고른 블록과 모드 ('mine' 캐기 / 'place' 놓기)
 let selected = WOOD, mode = 'mine';
 
+// 화면 위쪽에 잠깐 알림 띄우기 (최대 4개)
 function toast(msg){
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
   const box = $('toasts'); box.appendChild(el);
   while (box.children.length > 4) box.removeChild(box.firstChild);
   setTimeout(() => el.remove(), 2700);
 }
+
+// 같은 안내는 한 번만 보여주기
 const hinted = {};
 function hintOnce(key, msg){ if (hinted[key]) return; hinted[key] = 1; toast(msg); }
+
+// 아이템에 맞는 아이콘 CSS 클래스
 function icoClass(t){
   const k = INFO[t].kind;
   if (k === 'tool') return 'ico tool ' + INFO[t].cls;
@@ -964,6 +1872,8 @@ function icoClass(t){
   if (k === 'bug') return 'ico bug';
   return 'ico' + (t===FLOWER ? ' flower' : t===LANTERN ? ' lantern' : '');
 }
+
+// 아래쪽 블록 선택 칸 다시 그리기
 function renderHotbar(){
   const hb = $('hotbar'); hb.innerHTML = '';
   ORDER.forEach((t, i) => {
@@ -975,6 +1885,8 @@ function renderHotbar(){
     hb.appendChild(b);
   });
 }
+
+// 블록 고르기 (이름을 잠깐 보여줘요)
 let selTimer = 0;
 function selectItem(t, switchToPlace){
   selected = t;
@@ -983,6 +1895,8 @@ function selectItem(t, switchToPlace){
   const s = $('selname'); s.textContent = `${INFO[t].name} · ${count(t)}개`; s.style.opacity = 1;
   clearTimeout(selTimer); selTimer = setTimeout(() => { s.style.opacity = 0; }, 1400);
 }
+
+// 캐기(곡괭이)·놓기(블록) 아이콘과 모드 바꾸기
 const ICON_PICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8c4-4 12-4 16 0"/><path d="M12 6l-7 15"/></svg>';
 const ICON_BLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>';
 function setMode(m){
@@ -992,19 +1906,27 @@ function setMode(m){
   b.innerHTML = m==='mine' ? `${ICON_PICK}<span>캐기</span>` : `${ICON_BLOCK}<span>놓기</span>`;
   showHighlightFromHover();
 }
+
+// 우정 하트: 들어준 부탁 수만큼 ♥
 const hearts = v => { let s=''; for (let i=0;i<v.def.quests.length;i++) s += i<v.qi ? '♥' : '♡'; return s; };
+
+// '집 짓기' 부탁: 깃발 근처에 놓인 판자 수 세기
 function buildProgress(v, q){
   let n = 0;
   for (let y=0; y<H; y++) for (let z=0; z<D; z++) for (let x=0; x<W; x++)
     if (world[idx(x,y,z)]===q.build.type && Math.hypot(x-v.home.x, z-v.home.z) <= q.build.radius) n++;
   return n;
 }
+
+// 부탁 진행 상황 글자 / 부탁을 다 했는지 확인
 const needText = need => Object.entries(need).map(([t,n]) => `${INFO[t].name} ${Math.min(count(+t),n)}/${n}`).join(' · ');
 function progressText(v, q){ return q.build ? `깃발 근처 판자 ${Math.min(buildProgress(v,q), q.build.count)}/${q.build.count}` : needText(q.need); }
 function questDone(v, q){
   if (q.build) return buildProgress(v,q) >= q.build.count;
   return Object.entries(q.need).every(([t,n]) => count(+t) >= n);
 }
+
+// 왼쪽 위 부탁 목록 다시 그리기
 function renderQuests(){
   const list = $('qList'); list.innerHTML = '';
   for (const v of villagers){
@@ -1018,12 +1940,17 @@ function renderQuests(){
   }
   $('quest').classList.toggle('collapsed', !!settings.questCollapsed);
   $('qToggleTxt').textContent = settings.questCollapsed ? '펼치기' : '접기';
+  // 부탁 목록 접기/펼치기
   $('qToggle').setAttribute('aria-expanded', String(!settings.questCollapsed));
 }
 $('qToggle').addEventListener('click', () => { settings.questCollapsed = !settings.questCollapsed; saveSettings(); renderQuests(); });
 
-/* ---------- dialog ---------- */
+// ============================================================
+// 대화: 이웃과 말하기, 부탁 받기·건네주기
+// ============================================================
 let dialogOpen = false, typeTimer = 0, activeV = null;
+
+// 대화창 열기: 글자가 한 글자씩 나오고(누르면 바로 다 보여요), 아래에 선택 버튼
 function say(v, text, buttons){
   dialogOpen = true; activeV = v;
   $('dialog').hidden = false;
@@ -1042,8 +1969,12 @@ function say(v, text, buttons){
     el.addEventListener('click', b.fn); bb.appendChild(el);
   });
 }
+
+// 대화창 닫기 / 아이템 목록 글자 만들기
 function closeDialog(){ dialogOpen = false; activeV = null; $('dialog').hidden = true; clearInterval(typeTimer); }
 function itemsText(r){ return Object.entries(r).map(([t,n]) => `${INFO[t].name} ${n}개`).join(', '); }
+
+// 이웃에게 말 걸기: 부탁 다 끝남 → 잡담 / 부탁 전 → 부탁 소개 / 다 모음 → 건네주고 보상 / 진행 중 → 진행 상황
 function talk(v){
   if (!v) return;
   const qs = v.def.quests;
@@ -1076,7 +2007,10 @@ function talk(v){
   }
 }
 
-/* ---------- panels ---------- */
+// ============================================================
+// 팝업 창: 제작, 가방(도감)
+// ============================================================
+// 제작 창: 재료가 충분하면 '만들기' 버튼이 켜져요
 function renderRecipes(){
   const box = $('recipes'); box.innerHTML = '';
   for (const r of RECIPES){
@@ -1092,6 +2026,8 @@ function renderRecipes(){
     row.appendChild(b); box.appendChild(row);
   }
 }
+
+// 가방 창: 도구·물고기·곤충 도감 (아직 못 찾은 건 ???)
 function renderBag(){
   const card = t => {
     const known = seen[t] || count(t) > 0, I = INFO[t];
@@ -1102,9 +2038,14 @@ function renderBag(){
   $('bagBody').innerHTML = sec('도구', [ROD, NET]) + sec('물고기', [SARDINE, BREAM, GOLDFISH, MINNOW, TROUT, BOOT]) + sec('곤충', [BUTTERFLY, LADYBUG, FIREFLY]);
   $('dexCount').textContent = `도감 ${DEX.filter(t => seen[t]).length}/${DEX.length} · ${coins.toLocaleString()}코인`;
 }
-/* ---------- shop ---------- */
+// ============================================================
+// 잡화점: 팔기 / 사기, 팝업 창 열고 닫기, 버튼 연결
+// ============================================================
+// 지금 열린 탭 / 부탁에 필요한 물건인지 (팔기 목록에 표시)
 let shopTab = 'sell';
 const neededByQuest = t => villagers.some(v => v.accepted && v.qi < v.def.quests.length && v.def.quests[v.qi].need && v.def.quests[v.qi].need[t]);
+
+// 잡화점 창 그리기
 function renderShop(){
   $('shopCoins').textContent = `${coins.toLocaleString()}코인`;
   document.querySelectorAll('#shop .tab').forEach(b => { const on = b.dataset.tab === shopTab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
@@ -1139,12 +2080,16 @@ function renderShop(){
     }
   }
 }
+
+// 팔기: 물건을 빼고 코인 받기
 function sell(t, n){
   n = Math.min(n, count(t)); if (n <= 0) return;
   take(t, n); coins += SELL[t]*n;
   toast(`${INFO[t].name} ${n}개를 팔아서 ${SELL[t]*n}코인을 받았어요`);
   renderShop(); scheduleSave();
 }
+
+// 사기: 코인을 내고 물건 받기
 function buy(t, n, price){
   if (coins < price*n){ toast('코인이 모자라요'); return; }
   coins -= price*n; give(t, n);
@@ -1153,6 +2098,7 @@ function buy(t, n, price){
 }
 document.querySelectorAll('#shop .tab').forEach(b => b.addEventListener('click', () => { shopTab = b.dataset.tab; renderShop(); }));
 
+// 팝업 창 열기·닫기 (한 번에 하나만 열려요)
 const modals = ['craft','bag','settings','shop'];
 const anyModal = () => modals.some(id => !$(id).hidden);
 function openModal(id){
@@ -1164,6 +2110,8 @@ function openModal(id){
 }
 function closeModals(){ for (const m of modals) $(m).hidden = true; rebinding = null; }
 function toggleModal(id){ if ($(id).hidden) openModal(id); else closeModals(); }
+
+// 버튼 연결: 메뉴 버튼, 닫기 버튼, 초기화 확인, 대화·낚시 버튼
 $('btnCraft').addEventListener('click', () => openModal('craft'));
 $('btnBag').addEventListener('click', () => openModal('bag'));
 $('btnSettings').addEventListener('click', () => openModal('settings'));
@@ -1184,14 +2132,21 @@ $('btnMode').addEventListener('click', () => setMode(mode==='mine' ? 'place' : '
 $('btnTalk').addEventListener('click', () => talk(nearestVillager()));
 $('btnPull').addEventListener('click', () => pull());
 
-/* ---------- settings panel ---------- */
+// ============================================================
+// 설정 창: 키 바꾸기, 감도, 조이스틱, 하루 길이 등
+// ============================================================
+// 지금 키를 바꾸는 중인 동작 (없으면 null)
 let rebinding = null;
+
+// 설정 창 도우미: 선택 버튼 묶음(seg), 체크박스(check)
 function seg(key, opts){
   return `<div class="seg" role="group">${opts.map(([v,l]) => { const on = String(settings[key]) === String(v); return `<button data-seg="${key}" data-val="${v}" class="${on?'on':''}" aria-pressed="${on}">${l}</button>`; }).join('')}</div>`;
 }
 function check(key, label, sub){
   return `<label class="set-row" style="cursor:pointer"><span>${label}${sub?`<small>${sub}</small>`:''}</span><input type="checkbox" id="chk-${key}" data-key="${key}" ${settings[key]?'checked':''}></label>`;
 }
+
+// 설정 창 내용 그리기
 function renderSettings(){
   const keys = ACTIONS.map(([a,label]) => `<div class="set-row"><span>${label}</span><button class="keybtn${rebinding===a?' wait':''}" data-act="${a}">${rebinding===a ? '키를 누르세요…' : keyLabel(settings.keys[a])}</button></div>`).join('');
   $('setBody').innerHTML = `
@@ -1218,6 +2173,8 @@ function renderSettings(){
       ${check('showHint', '왼쪽 아래 조작 안내 보이기', '넓은 PC 화면에서만 보여요')}
     </div>`;
 }
+
+// 설정 창에서 누르기·바꾸기 처리
 $('setBody').addEventListener('click', e => {
   const kb = e.target.closest('.keybtn');
   if (kb){ rebinding = rebinding === kb.dataset.act ? null : kb.dataset.act; renderSettings(); return; }
@@ -1231,14 +2188,20 @@ $('setBody').addEventListener('input', e => {
 $('setBody').addEventListener('change', e => {
   if (e.target.type === 'checkbox'){ settings[e.target.dataset.key] = e.target.checked; commitSettings(); }
 });
+
+// 모든 설정 기본값으로
 $('setDefaults').addEventListener('click', () => {
   settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); rebinding = null; commitSettings(); toast('모든 설정을 기본값으로 되돌렸어요');
 });
+
+// 설정 저장 → 화면에 적용 → 설정 창 다시 그리기
 function commitSettings(){
   const focusId = document.activeElement && document.activeElement.id;
   saveSettings(); applySettings(); renderSettings();
   if (focusId && $(focusId)) $(focusId).focus();
 }
+
+// 설정을 화면에 적용 (조이스틱 위치, 버튼 크기, 안내 표시)
 function applySettings(){
   document.body.classList.toggle('joy-right', settings.joySide === 'right');
   document.body.classList.toggle('btn-s', settings.btnSize === 's');
@@ -1247,6 +2210,8 @@ function applySettings(){
   $('howtoJoy').textContent = settings.joySide === 'right' ? '화면 오른쪽을 누르고 끌기' : '화면 왼쪽을 누르고 끌기';
   renderHint(); renderQuests();
 }
+
+// 조작 안내 글 (바꾼 키에 맞춰 자동으로 바뀌어요)
 function renderHint(){
   const K = a => keyLabel(settings.keys[a]);
   const mv = ['forward','left','back','right'].map(K);
@@ -1259,6 +2224,8 @@ function renderHint(){
     <dt>낚시·채집</dt><dd>물이나 벌레를 클릭 (도구를 받은 뒤)</dd>
     <dt>대화</dt><dd>이웃 근처에서 ${K('talk')}</dd>`;
 }
+
+// 키 바꾸기: 원하는 키를 누르면 저장 (다른 동작이 쓰던 키면 서로 바꿔요). Esc는 취소
 window.addEventListener('keydown', e => {
   if (!rebinding) return;
   e.preventDefault(); e.stopImmediatePropagation();
@@ -1271,7 +2238,10 @@ window.addEventListener('keydown', e => {
   const btn = document.querySelector(`.keybtn[data-act="${done}"]`); if (btn) btn.focus();
 }, true);
 
-/* ---------- effects ---------- */
+// ============================================================
+// 효과: 블록 부스러기, 폭포 물보라, 하트
+// ============================================================
+// 작은 조각 150개를 미리 만들어 두고 돌려 써요
 const parts = [];
 const partGeo = new THREE.BoxGeometry(.13,.13,.13);
 for (let i=0; i<150; i++){
@@ -1279,6 +2249,8 @@ for (let i=0; i<150; i++){
   m.visible = false; scene.add(m); parts.push({m, v:new THREE.Vector3(), life:0});
 }
 let partI = 0;
+
+// 조각 터뜨리기 (블록을 캘 때 등)
 function burst(x,y,z,color,n,up){
   for (let i=0; i<n; i++){
     const p = parts[partI++ % parts.length];
@@ -1286,6 +2258,8 @@ function burst(x,y,z,color,n,up){
     p.v.set((Math.random()-.5)*4, 2+Math.random()*3+(up||0), (Math.random()-.5)*4); p.life = .7;
   }
 }
+
+// 폭포 아래 하얀 물보라
 let foamT = 0;
 function foam(dt){
   if (!fallBases.length) return;
@@ -1300,9 +2274,14 @@ function foam(dt){
     p.v.set((Math.random()-.5)*2.2, 1+Math.random()*1.8, (Math.random()-.5)*2.2); p.life = .5;
   }
 }
+
+// 부탁을 들어줬을 때 하트 효과
 function heartBurst(v){ burst(v.pos.x, v.pos.y+1.8, v.pos.z, 0xff7f9e, 14, 2); }
 
-/* ---------- bugs ---------- */
+// ============================================================
+// 곤충: 나비(낮), 무당벌레(낮), 반딧불이(밤)
+// ============================================================
+// 곤충 모양과 재질
 const bugs = [];
 const bugGeo = {body:new THREE.BoxGeometry(.05,.05,.22), wing:new THREE.BoxGeometry(.24,.015,.2), shell:new THREE.BoxGeometry(.22,.12,.26),
   bhead:new THREE.BoxGeometry(.12,.08,.08), dot:new THREE.BoxGeometry(.05,.01,.05), fly:new THREE.BoxGeometry(.09,.09,.11), glow:new THREE.BoxGeometry(.32,.32,.32), hit:new THREE.BoxGeometry(1,1,1)};
@@ -1311,6 +2290,8 @@ const darkMat = new THREE.MeshLambertMaterial({color:0x3a3340});
 const wingMats = [0xc7a6ff, 0xffb3d1, 0xffe07a, 0x9fd8ff, 0xffffff].map(c => new THREE.MeshLambertMaterial({color:c}));
 const shellMat = new THREE.MeshLambertMaterial({color:0xff5a5a});
 const flyMat = new THREE.MeshBasicMaterial({color:0xeaff8a});
+
+// 곤충 하나 만들기 (잡기 쉽도록 보이지 않는 큰 상자(hit)를 붙여요)
 function makeBug(type, p){
   const g = new THREE.Group();
   const b = {type, g, t:Math.random()*100, ph:Math.random()*6.28, leaving:0, parts:{}, home:new THREE.Vector3(p.x,p.y,p.z), goal:new THREE.Vector3(p.x,p.y,p.z), heading:Math.random()*6.28};
@@ -1334,6 +2315,8 @@ function makeBug(type, p){
   g.position.copy(b.home); g.scale.setScalar(.01);
   scene.add(g); bugs.push(b); return b;
 }
+
+// 곤충이 나타날 자리 (잔디 / 꽃)
 function grassSpot(){
   for (let i=0; i<40; i++){
     const x = 2+Math.floor(Math.random()*(W-4)), z = 2+Math.floor(Math.random()*(D-4)), h = topY(x,z);
@@ -1342,12 +2325,18 @@ function grassSpot(){
   return null;
 }
 function flowerSpot(){ if (!flowerCells.length) return grassSpot(); const c = pickOne(flowerCells); return {x:c[0]+.5, y:c[1], z:c[2]+.5}; }
+
+// 시간대별로 있어야 할 곤충 수 (밤에는 반딧불이)
 function wanted(type){
   if (type === BUTTERFLY) return daylight > .45 ? 10 : 0;
   if (type === LADYBUG) return daylight > .45 ? 7 : 2;
   return daylight < .3 ? 16 : 0;
 }
+
+// 곤충 없애기
 function removeBug(i){ const b = bugs[i]; scene.remove(b.g); if (b.parts.gm) b.parts.gm.dispose(); bugs.splice(i,1); }
+
+// 곤충 움직이기: 모자라면 생기고 많으면 사라져요. 나비는 날고, 무당벌레는 기고, 반딧불이는 깜빡여요
 let spawnT = 0;
 function updateBugs(dt){
   spawnT -= dt;
@@ -1390,6 +2379,8 @@ function updateBugs(dt){
     }
   }
 }
+
+// 잠자리채로 곤충 잡기
 function catchBug(b){
   const i = bugs.indexOf(b); if (i < 0) return;
   const first = !seen[b.type];
@@ -1400,7 +2391,10 @@ function catchBug(b){
   scheduleSave();
 }
 
-/* ---------- fishing ---------- */
+// ============================================================
+// 낚시: 던지기 → 기다리기 → 찌가 쑥 들어가면 당기기
+// ============================================================
+// 지금 낚시 상태 (안 할 땐 null), 찌와 낚싯줄
 let fishing = null;
 const bobber = new THREE.Group();
 box(.18,.12,.18,0xffffff,0,0,0,bobber); box(.18,.1,.18,0xff6b6b,0,.1,0,bobber);
@@ -1409,7 +2403,11 @@ const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), n
 const fishLine = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({color:0xffffff}));
 fishLine.visible = false; fishLine.frustumCulled = false; scene.add(fishLine);
 const rodTip = new THREE.Vector3();
+
+// 그 자리가 바다인지
 function isWaterAt(x,z){ const X = Math.floor(x), Z = Math.floor(z); if (X<0||Z<0||X>=W||Z>=D) return true; return topY(X,Z) <= 4; }
+
+// 찌 던지기 (잠시 뒤 물고기가 물어요)
 function startFishing(p, surf, river){
   surf = surf || SEA;
   const X = Math.floor(p.x), Z = Math.floor(p.z);
@@ -1421,10 +2419,14 @@ function startFishing(p, surf, river){
   const b = $('btnPull'); b.hidden = false; b.classList.remove('bite'); b.textContent = '기다리는 중…';
   hintOnce('fish', `찌가 쑥 들어가면 화면을 누르거나 ${keyLabel(settings.keys.talk)} 키로 당겨요`);
 }
+
+// 낚시 끝내기
 function endFishing(msg){
   fishing = null; bobber.visible = false; fishLine.visible = false; P.rod.visible = false; $('btnPull').hidden = true;
   if (msg) toast(msg);
 }
+
+// 어떤 물고기가 잡힐지 정하기 (강/바다, 밤, 물 깊이에 따라 확률이 달라요)
 function rollFish(depth, night, river){
   const r = Math.random();
   if (river){
@@ -1440,6 +2442,8 @@ function rollFish(depth, night, river){
   if (r < gold+boot+bream) return BREAM;
   return SARDINE;
 }
+
+// 당기기: 찌가 들어간 때('bite')면 성공, 아니면 실패
 function pull(){
   if (!fishing) return;
   if (fishing.phase === 'bite'){
@@ -1450,6 +2454,8 @@ function pull(){
     scheduleSave();
   } else endFishing('너무 빨리 당겼어요. 찌가 쑥 들어갈 때 당겨요');
 }
+
+// 찌 흔들기 · 물었는지 확인 · 낚싯줄 그리기
 function updateFishing(dt, t){
   if (!fishing) return;
   fishing.timer -= dt;
@@ -1476,7 +2482,10 @@ function updateFishing(dt, t){
   if (Math.hypot(bobber.position.x-player.pos.x, bobber.position.z-player.pos.z) > 13) endFishing('찌가 너무 멀어졌어요');
 }
 
-/* ---------- world interaction ---------- */
+// ============================================================
+// 섬과 상호작용: 클릭·터치로 캐기, 놓기, 낚시, 채집, 대화
+// ============================================================
+// 화면에서 누른 곳이 3D 세계의 무엇인지 찾는 광선(Raycaster)
 const ray = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
 const playerCenter = () => new THREE.Vector3(player.pos.x, player.pos.y+.9, player.pos.z);
@@ -1485,6 +2494,8 @@ function setRay(cx, cy){
   ndc.set(((cx-r.left)/r.width)*2-1, -((cy-r.top)/r.height)*2+1);
   ray.setFromCamera(ndc, camera);
 }
+
+// 광선이 맞은 블록 정보 / 화면 좌표로 블록 찾기
 function blockHit(h){
   if (h.instanceId === undefined || !h.object.userData.cells) return null;
   const cell = h.object.userData.cells[h.instanceId]; if (!cell) return null;
@@ -1496,10 +2507,14 @@ function pickBlock(cx, cy){
   for (const h of ray.intersectObjects(pickables, false)){ const b = blockHit(h); if (b) return b; }
   return null;
 }
+
+// 손이 닿는 거리인지 / 블록이 몸과 겹치는지
 function inReach(x,y,z){ return Math.hypot(x+.5-player.pos.x, y+.5-(player.pos.y+.9), z+.5-player.pos.z) <= REACH; }
 function overlapsBody(x,y,z,bp,r,h){
   return x < bp.x+r && x+1 > bp.x-r && z < bp.z+r && z+1 > bp.z-r && y < bp.y+h && y+1 > bp.y;
 }
+
+// 캐기: 블록을 없애고 가방에 넣기 (맨 아래 바닥은 못 캐요)
 function mine(x,y,z){
   const b = get(x,y,z); if (!b) return;
   if (y === 0){ toast('바닥은 너무 단단해서 캘 수 없어요'); return; }
@@ -1509,6 +2524,8 @@ function mine(x,y,z){
   if (get(x,y+1,z) === FLOWER){ put(x,y+1,z,AIR); give(FLOWER,1); toast('+1 꽃'); }
   scheduleSave();
 }
+
+// 놓기: 고른 블록 놓기 (몸이 있는 자리에는 못 놓아요)
 function place(x,y,z){
   const t = selected;
   if (!count(t)){ toast(`${josa(INFO[t].name,'가','이')} 없어요. 먼저 모아 오세요`); return; }
@@ -1523,6 +2540,8 @@ function place(x,y,z){
   burst(x+.5,y+.5,z+.5, INFO[t].c, 4);
   scheduleSave();
 }
+
+// 화면을 눌렀을 때: 맞은 것에 따라 잡화점 / 대화 / 곤충 / 낚시 / 블록 처리
 function actAt(cx, cy, secondary){
   if (dialogOpen) return;
   if (fishing){ pull(); return; }
@@ -1573,6 +2592,8 @@ function actAt(cx, cy, secondary){
     return;
   }
 }
+
+// 가리키는 블록에 테두리 표시 (닿으면 흰색, 멀면 분홍)
 let hlTimer = 0;
 function showHighlight(h, doPlace){
   if (!h){ hl.visible = false; return; }
@@ -1582,6 +2603,8 @@ function showHighlight(h, doPlace){
   hl.material.color.set(inReach(x,y,z) ? (doPlace ? 0xb8ffd9 : 0xffffff) : 0xff9fb8);
   hl.visible = true;
 }
+
+// 이웃이 가까이 있는지 / 가장 가까운 이웃 찾기
 function nearV(v){ return Math.hypot(v.pos.x-player.pos.x, v.pos.z-player.pos.z) < 3 && Math.abs(v.pos.y-player.pos.y) < 2.5; }
 function nearestVillager(){
   let best = null, bd = 1e9;
@@ -1589,19 +2612,26 @@ function nearestVillager(){
   return best;
 }
 
-/* ---------- input ---------- */
+// ============================================================
+// 입력: 키보드, 마우스, 터치(조이스틱·두 손가락 확대)
+// ============================================================
+// 눌린 키, 카메라 (yaw 좌우 회전, pitch 위아래, dist 거리)
 const held = {};
 let jumpQueued = false;
 let cam = {yaw: .6, pitch: .55, dist: 9};
 const camTarget = new THREE.Vector3();
 let camDist = 9;
 const ARROWS = {ArrowUp:'forward', ArrowDown:'back', ArrowLeft:'left', ArrowRight:'right'};
+
+// 키 → 동작 이름 / 그 동작 키가 눌려 있는지 (방향키도 이동에 써요)
 function actionOf(code){ for (const k in settings.keys) if (settings.keys[k] === code) return k; return null; }
 function isDown(a){
   if (held[settings.keys[a]]) return true;
   for (const ar in ARROWS) if (ARROWS[ar] === a && held[ar] && !actionOf(ar)) return true;
   return false;
 }
+
+// 한 번 누르면 실행되는 동작 (점프, 대화, 모드, 제작, 가방)
 function oneShot(a){
   if (a === 'jump') jumpQueued = true;
   else if (a === 'talk'){ if (fishing) pull(); else if (dialogOpen) closeDialog(); else { const v = nearestVillager(); if (v) talk(v); else if (nearShop()) openModal('shop'); } }
@@ -1609,6 +2639,8 @@ function oneShot(a){
   else if (a === 'craft') toggleModal('craft');
   else if (a === 'bag') toggleModal('bag');
 }
+
+// 게임 키 입력 (창이 열려 있으면 이동 안 함). 숫자 키로 블록 고르기
 window.addEventListener('keydown', e => {
   if (rebinding) return;
   if (e.code === 'Escape'){ closeDialog(); closeModals(); return; }
@@ -1625,15 +2657,20 @@ window.addEventListener('keydown', e => {
   const si = SLOT_KEYS.indexOf(e.key);
   if (si >= 0 && si < ORDER.length) selectItem(ORDER[si], true);
 });
+
+// 키를 떼거나 창을 벗어나면 키 상태 초기화
 window.addEventListener('keyup', e => { held[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in held) held[k] = false; });
 
+// 터치·마우스 상태: 조이스틱, 시점 끌기, 두 손가락 확대, 마우스 위치
 const joy = {id:null, ox:0, oy:0, x:0, y:0};
 const looks = new Map();
 let pinch = null;
 let hoverXY = null, hoverDirty = false;
 const inJoyZone = x => settings.joySide === 'right' ? x > window.innerWidth*.58 : x < window.innerWidth*.42;
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// 누르기 시작: 조이스틱 쪽 터치면 조이스틱, 아니면 시점 돌리기
 canvas.addEventListener('pointerdown', e => {
   if (canvas.setPointerCapture) try { canvas.setPointerCapture(e.pointerId); } catch(err){}
   if (e.pointerType === 'touch' && !document.body.classList.contains('touch')) document.body.classList.add('touch');
@@ -1650,6 +2687,8 @@ canvas.addEventListener('pointerdown', e => {
     for (const l of looks.values()) l.moved = true;
   }
 });
+
+// 움직이기: 조이스틱 / 두 손가락 확대 / 시점 돌리기
 canvas.addEventListener('pointermove', e => {
   if (e.pointerId === joy.id){
     let dx = e.clientX-joy.ox, dy = e.clientY-joy.oy; const len = Math.hypot(dx,dy), max = 48;
@@ -1677,6 +2716,8 @@ canvas.addEventListener('pointermove', e => {
   l.lx = e.clientX; l.ly = e.clientY;
   if (e.pointerType === 'mouse'){ hoverXY = [e.clientX, e.clientY]; hoverDirty = true; }
 });
+
+// 떼기: 거의 안 움직이고 떼면 '클릭'으로 보고 actAt 실행
 function endPointer(e){
   if (e.pointerId === joy.id){ joy.id = null; joy.x = joy.y = 0; $('joy').hidden = true; return; }
   const l = looks.get(e.pointerId); if (!l) return;
@@ -1687,6 +2728,8 @@ function endPointer(e){
     actAt(e.clientX, e.clientY, secondary);
   }
 }
+
+// 손 뗌 / 취소 / 화면 밖 / 휠 확대 / 점프 버튼
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { hoverXY = null; hl.visible = false; } });
@@ -1694,18 +2737,29 @@ canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = Math.max(
 $('btnJump').addEventListener('pointerdown', e => { e.preventDefault(); jumpQueued = true; });
 function showHighlightFromHover(){ if (hoverXY && !isCoarse) hoverDirty = true; }
 
-/* ---------- save / load ---------- */
+// ============================================================
+// 저장과 불러오기 (브라우저 localStorage에 자동 저장)
+// ============================================================
+// 섬 블록 배열 ↔ 글자(base64) 바꾸기
 function toB64(u8){ let s=''; for (let i=0; i<u8.length; i+=8192) s += String.fromCharCode.apply(null, u8.subarray(i, i+8192)); return btoa(s); }
 function fromB64(b){ const s = atob(b); const u = new Uint8Array(s.length); for (let i=0; i<s.length; i++) u[i] = s.charCodeAt(i); return u; }
+
+// 저장할 내용 묶기 (섬, 가방, 코인, 시간, 위치, 이웃 진행 상황)
 function serialize(){
   return {v:3, seed, w:toB64(world), inv, seen, coins, shop:shopPos, dayT,
     p:[player.pos.x, player.pos.y, player.pos.z], cam:{yaw:cam.yaw, pitch:cam.pitch, dist:cam.dist},
     vs:villagers.map(v => ({qi:v.qi, accepted:v.accepted, home:v.home, pos:[v.pos.x, v.pos.y, v.pos.z]}))};
 }
+
+// 저장 / 잠시 뒤에 저장 (너무 자주 저장하지 않도록)
 function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(serialize())); } catch(e){} }
 let saveTimer = 0;
 function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(save, 1500); }
+
+// 옛날 저장(작은 섬)에서 넘어왔는지, 잡화점이 새로 생겼는지
 let worldUpgraded = false, shopIsNew = false;
+
+// 저장된 게임 불러오기
 function load(data){
   if (!data || ![1,2,3].includes(data.v)) return false;
   try {
@@ -1715,7 +2769,7 @@ function load(data){
     for (const t in inv) if (inv[t] > 0) seen[t] = 1;
     dayT = typeof data.dayT === 'number' ? data.dayT : .05;
     if (data.cam) Object.assign(cam, data.cam);
-    // older, smaller islands get a fresh bigger island; bag and friendships carry over
+    // 옛날 버전의 작은 섬이면 새 큰 섬을 만들어요. 가방과 우정은 그대로 이어져요
     if (keepWorld){
       world = w; seed = data.seed || 1;
       if (data.shop) shopPos = data.shop; else { shopPos = findHome(5.6, 7); shopIsNew = true; }
@@ -1733,6 +2787,8 @@ function load(data){
     dirty = true; return true;
   } catch(e){ return false; }
 }
+
+// 섬만 새로 만들기 (가방·우정 유지)
 function newIsland(s){
   generate(s);
   for (const v of villagers) spawnAtHome(v);
@@ -1741,6 +2797,8 @@ function newIsland(s){
   const sp = spawnPoint(); player.pos.set(sp.x, sp.y, sp.z); player.vel.set(0,0,0);
   rebuild(); renderHotbar(); renderQuests(); save();
 }
+
+// 게임 전체를 처음부터
 function newGame(s){
   generate(s);
   inv = {}; seen = {}; coins = 0; dayT = .05;
@@ -1751,16 +2809,23 @@ function newGame(s){
   cam.yaw = .6; cam.pitch = .55; cam.dist = 9;
   rebuild(); renderHotbar(); renderQuests(); save();
 }
+
+// 창을 닫거나 숨길 때, 그리고 15초마다 자동 저장
 window.addEventListener('pagehide', save);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 setInterval(save, 15000);
 
-/* ---------- day / night ---------- */
+// ============================================================
+// 낮과 밤: 하늘색, 햇빛, 별, 등불, 시계
+// ============================================================
+// 낮 / 밤 / 노을 색
 const C_DAY = new THREE.Color(0xbfe7ff), C_NIGHT = new THREE.Color(0x26335e), C_DUSK = new THREE.Color(0xffc4a3);
 const W_DAY = new THREE.Color(0x38b6d6), W_NIGHT = new THREE.Color(0x24406b);
 const S_DAY = new THREE.Color(0xfff3dd), S_NIGHT = new THREE.Color(0x9fb4ff);
 const F_DAY = new THREE.Color(0xdff6ff), F_NIGHT = new THREE.Color(0x4f6f96);
 let lastClock = '';
+
+// 시간을 흐르게 하고 하늘·빛·물 색을 바꿔요 (dayT 0~1이 하루)
 function updateSky(dt){
   dayT = (dayT + dt/(settings.dayLen*60)) % 1;
   const hour = (6 + dayT*24) % 24;
@@ -1785,9 +2850,14 @@ function updateSky(dt){
   if (txt !== lastClock){ $('clock').textContent = txt; lastClock = txt; }
 }
 
-/* ---------- loop ---------- */
+// ============================================================
+// 게임 루프: 매 프레임(1초에 약 60번) 실행
+// ============================================================
+// 계산용 벡터, 실행 중인지, 시간
 const fwd = new THREE.Vector3(), right = new THREE.Vector3(), mv = new THREE.Vector3(), tmpV = new THREE.Vector3();
 let running = false, last = performance.now(), t = 0;
+
+// 매 프레임 업데이트: 이동 → 캐릭터 동작 → 이웃 → 카메라 → 하늘·곤충·낚시 → 조각 → 버튼
 function update(dt){
   t += dt;
   let ix = 0, iz = 0;
@@ -1823,6 +2893,7 @@ function update(dt){
 
   for (const v of villagers) updateVillager(v, dt);
 
+  // 카메라: 플레이어를 부드럽게 따라가고, 벽에 가리면 가까이 붙어요
   tmpV.set(player.pos.x, player.pos.y+1.1, player.pos.z);
   camTarget.lerp(tmpV, 1 - Math.exp(-dt*10));
   const cp = Math.cos(cam.pitch);
@@ -1851,12 +2922,15 @@ function update(dt){
   if (hoverDirty && hoverXY && !isCoarse){ hoverDirty = false; showHighlight(pickBlock(hoverXY[0], hoverXY[1]), mode==='place'); }
   if (hlTimer > 0){ hlTimer -= dt; if (hlTimer <= 0 && isCoarse) hl.visible = false; }
 
+  // 대화·잡화점 버튼 보이기/숨기기
   const nv = nearestVillager();
   const tb = $('btnTalk');
   tb.hidden = !nv || dialogOpen || !!fishing;
   $('btnShop').hidden = !!nv || dialogOpen || !!fishing || anyModal() || !nearShop();
   if (nv){ const label = `${josa(nv.def.name,'와','과')} 대화`; if (tb.textContent !== label) tb.textContent = label; }
 }
+
+// 늘 움직이는 배경: 물결, 폭포 흐름, 물보라, 구름, 깃발
 function ambient(dt){
   water.position.y = SEA + Math.sin(t*1.2)*.03;
   fallTex.offset.y += dt*1.8; riverTex.offset.y += dt*.35;
@@ -1870,6 +2944,8 @@ function ambient(dt){
   for (const c of clouds){ c.position.x += dt*.8; if (c.position.x > W/2+90) c.position.x = W/2-90; }
   for (const v of villagers) v.flag.cloth.rotation.y = Math.sin(t*2.2 + v.def.angle)*.25;
 }
+
+// 이웃 움직이기: 플레이어가 가까우면 쳐다보고, 아니면 집 근처를 산책
 function updateVillager(v, dt){
   v.m.bang.visible = v.qi < v.def.quests.length && !v.accepted;
   v.m.bang.position.y = 1.95 + Math.sin(t*3 + v.def.angle)*.08;
@@ -1907,11 +2983,15 @@ function updateVillager(v, dt){
   v.m.earL.rotation.z = (v.def.kind==='cat' ? .25 : 0) + Math.sin(t*2 + v.def.angle)*.08;
   v.m.earR.rotation.z = (v.def.kind==='cat' ? -.25 : 0) - Math.sin(t*2 + v.def.angle + 1)*.08;
 }
+
+// 창 크기가 바뀌면 화면 크기 맞추기
 function resize(){
   const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
+
+// 한 프레임 그리기. 시작 전에는 섬 주위를 천천히 도는 화면을 보여줘요
 function frame(now){
   const dt = Math.min(.05, (now-last)/1000); last = now;
   if (dirty) rebuild();
@@ -1927,7 +3007,9 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-/* ---------- boot ---------- */
+// ============================================================
+// 시작: 저장 불러오기(없으면 새 게임) → 화면 준비 → 루프 시작
+// ============================================================
 function start(hotData){
   let ok = false;
   if (hotData && hotData.save) ok = load(hotData.save);
@@ -1942,6 +3024,8 @@ function start(hotData){
   if (hotData && hotData.save){ $('start').hidden = true; running = true; }
   requestAnimationFrame(frame);
 }
+
+// '섬으로 들어가기' 버튼: 게임 시작과 안내 메시지
 $('btnStart').addEventListener('click', () => {
   $('start').hidden = true; running = true;
   camTarget.set(player.pos.x, player.pos.y+1.1, player.pos.z);
@@ -1951,7 +3035,11 @@ $('btnStart').addEventListener('click', () => {
   else if (villagers.every(v => v.qi === 0 && !v.accepted)) toast('깃발 옆의 이웃들에게 말을 걸어 보세요');
   else if (villagers.slice(1).every(v => v.qi === 0 && !v.accepted)) toast('섬에 새 이웃 포근과 보리가 이사 왔어요!');
 });
+
+// 개발용: localhost에서 열면 테스트용 정보를 열어 둬요
 if (location.hostname === 'localhost') window.__bi = {player, villagers, cam, bugs, give, talk, startFishing, pull, isWaterAt, camera, THREE, openModal, get inv(){ return inv; }, get coins(){ return coins; }, get shopPos(){ return shopPos; }, get fishing(){ return fishing; }, setTime(x){ dayT = x; }, get daylight(){ return daylight; }, get settings(){ return settings; }};
+
+// Claude 미리보기 환경용 기능 (일반 브라우저에서는 그냥 start 실행)
 const hot = window.claude && window.claude.hot;
 if (hot && hot.snapshot) { try { hot.snapshot(() => ({save: serialize()})); } catch(e){} }
 if (hot && hot.ready) hot.ready(start); else start(hot && hot.data ? hot.data : {});
